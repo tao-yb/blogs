@@ -1,6 +1,7 @@
 ---
+layout: linux
 title: Netty中的序列化方式之protobuf
-date: 2022-05-10 20:38:21
+date: 2022-08-29 20:45:01
 tags:
 ---
 
@@ -54,7 +55,7 @@ protoc 需要3个参数：
 protoc -I=.   --java_out=../../    person.pb
 ```
 
-  然后就可以使用pb在Netty客户端与服务端之间传输了。示例如下。
+然后就可以使用pb在Netty客户端与服务端之间传输了。示例如下。
 
 #### 服务端使用：
 
@@ -83,7 +84,7 @@ public class Server {
 }
 ```
 
- ServerHandler的实现：
+ServerHandler的实现：
 
 ```
 package com.serilizer;
