@@ -25,4 +25,4 @@ date: 2022-10-18 11:17:02
 
 # 公众号
 
-![](\imgs\javaer.jpg)
+![](/imgs/javaer.jpg)
