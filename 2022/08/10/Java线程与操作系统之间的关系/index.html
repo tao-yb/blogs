@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blogs/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blogs/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blogs/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blogs/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blogs/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" integrity="sha256-AbA177XfpSnFEvgpYu1jMygiLabzPCJCRIBtR5jGc0k=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tao-yb.github.io","root":"/blogs/","images":"/blogs/images","scheme":"Muse","darkmode":false,"version":"8.13.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/blogs/js/config.js"></script>
+
+    <meta name="description" content="在Linux上，通过pthread_create系统接口可以创建一个线程。我们在Java中，通过new Thread创建出来的线程其实是JVM通过调用pthread_create 创建的。 本例中，演示在Java程序中，通过调用pthread_create系统接口创建。涉的相关知识点包括：  jni gcc  总体流程概述：在Java文件中，native 方法如果能调用到C文件中通过pthread">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java线程与操作系统之间的关系">
+<meta property="og:url" content="https://tao-yb.github.io/blogs/2022/08/10/Java%E7%BA%BF%E7%A8%8B%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB/index.html">
+<meta property="og:site_name" content="javaer">
+<meta property="og:description" content="在Linux上，通过pthread_create系统接口可以创建一个线程。我们在Java中，通过new Thread创建出来的线程其实是JVM通过调用pthread_create 创建的。 本例中，演示在Java程序中，通过调用pthread_create系统接口创建。涉的相关知识点包括：  jni gcc  总体流程概述：在Java文件中，native 方法如果能调用到C文件中通过pthread">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-08-10T12:39:21.000Z">
+<meta property="article:modified_time" content="2022-10-18T03:06:10.218Z">
+<meta property="article:author" content="tao">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="多线程">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://tao-yb.github.io/blogs/2022/08/10/Java%E7%BA%BF%E7%A8%8B%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://tao-yb.github.io/blogs/2022/08/10/Java%E7%BA%BF%E7%A8%8B%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB/","path":"2022/08/10/Java线程与操作系统之间的关系/","title":"Java线程与操作系统之间的关系"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Java线程与操作系统之间的关系 | javaer</title>
+  
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/blogs/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blogs/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">javaer</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/blogs/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/blogs/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/blogs/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-tags"><a href="/blogs/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-about"><a href="/blogs/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E4%BD%93%E6%B5%81%E7%A8%8B%E6%A6%82%E8%BF%B0%EF%BC%9A"><span class="nav-number">1.</span> <span class="nav-text">总体流程概述：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89Java%E7%B1%BB"><span class="nav-number">1.1.</span> <span class="nav-text">定义Java类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A9%E7%94%A8jni%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%96%B9%E6%B3%95"><span class="nav-number">1.2.</span> <span class="nav-text">利用jni调用本地方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8javac-%EF%BC%8C%E7%94%9F%E6%88%90native-header%E6%96%87%E4%BB%B6%E3%80%82"><span class="nav-number">1.2.0.1.</span> <span class="nav-text">使用javac ，生成native header文件。</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#com-my-ZLThread-h-%E6%96%87%E4%BB%B6"><span class="nav-number">1.2.1.</span> <span class="nav-text">com_my_ZLThread.h 文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%86myThread-c%E6%96%87%E4%BB%B6%E7%BC%96%E8%AF%91%E6%88%90so-%E6%96%87%E4%BB%B6"><span class="nav-number">1.3.</span> <span class="nav-text">将myThread.c文件编译成so 文件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%86%E5%BA%93%E6%96%87%E4%BB%B6%E5%8A%A0%E5%85%A5%E5%88%B0lib%E5%BA%93%E4%B8%AD"><span class="nav-number">2.</span> <span class="nav-text">将库文件加入到lib库中</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C"><span class="nav-number">3.</span> <span class="nav-text">运行</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">tao</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/blogs/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/blogs/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/blogs/tags/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/08/10/Java%E7%BA%BF%E7%A8%8B%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Java线程与操作系统之间的关系 | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Java线程与操作系统之间的关系
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-08-10 20:39:21" itemprop="dateCreated datePublished" datetime="2022-08-10T20:39:21+08:00">2022-08-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-10-18 11:06:10" itemprop="dateModified" datetime="2022-10-18T11:06:10+08:00">2022-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">Java多线程</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>在Linux上，通过pthread_create系统接口可以创建一个线程。我们在Java中，通过new Thread创建出来的线程其实是JVM通过调用pthread_create 创建的。</p>
+<p>本例中，演示在Java程序中，通过调用pthread_create系统接口创建。涉的相关知识点包括：</p>
+<ul>
+<li>jni</li>
+<li>gcc</li>
+</ul>
+<h1 id="总体流程概述："><a href="#总体流程概述：" class="headerlink" title="总体流程概述："></a><a href="#%E6%80%BB%E4%BD%93%E6%B5%81%E7%A8%8B%E6%A6%82%E8%BF%B0"></a>总体流程概述：</h1><p>在Java文件中，native 方法如果能调用到C文件中通过pthread_create创建的线程。</p>
+<blockquote>
+<p>首先创建com&#x2F;my目录（根据java 文件包名创建）。以下所有文件都在com&#x2F;my下</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">前置条件：需要一个C文件（myThread.c）。在c文件中，通过pthread_Create创建线程。也就是Java中，thread启动的线程就是pthread_Create创建的。</span><br></pre></td></tr></table></figure>
+
+<p>myThread.c 文件内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;pthread.h&gt;</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &lt;unistd.h&gt;</span><br><span class="line">// com_my_ZLThread.h文件是下面使用javac -h生成的文件</span><br><span class="line">#include &quot;com_my_ZLThread.h&quot;</span><br><span class="line"></span><br><span class="line">pthread_t pid;</span><br><span class="line"></span><br><span class="line">void* thread_entity(void* arg)&#123;</span><br><span class="line">    while(1)&#123;</span><br><span class="line">       usleep(100);</span><br><span class="line">       printf(&quot;i am a new thread \n&quot;);</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//这个地方直接拷贝com_my_ZLThread.h中的即可</span><br><span class="line">JNIEXPORT void JNICALL Java_com_my_ZLThread_start1(JNIEnv *env, jobject cl)&#123;</span><br><span class="line">    //创建线程</span><br><span class="line">    pthread_create(&amp;pid,NULL,thread_entity,NULL);</span><br><span class="line">    while(1)&#123;</span><br><span class="line">        usleep(100);</span><br><span class="line">        printf(&quot;main thread \n&quot;);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="定义Java类"><a href="#定义Java类" class="headerlink" title="定义Java类"></a><a href="#%E5%AE%9A%E4%B9%89java%E7%B1%BB"></a>定义Java类</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">package com.my;</span><br><span class="line"></span><br><span class="line">/** * @author tyb * @Description</span><br><span class="line"> * @create 2022-07-18 20:41 */</span><br><span class="line">public class ZLThread &#123;</span><br><span class="line"></span><br><span class="line">    //装载我们自己类库。在类库中，调用pthread_create创建线程</span><br><span class="line">    static &#123;</span><br><span class="line">        System.loadLibrary(&quot;OSThreadNative&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 定义native方法。这个方法能调用到OSThreadNative中pthread_create中线程相关方法</span><br><span class="line">    public native void start1();</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ZLThread thread = new ZLThread();</span><br><span class="line">        // 能调用到c 文件中的方法，通过pthread_create创建线程</span><br><span class="line">        thread.start1();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="利用jni调用本地方法"><a href="#利用jni调用本地方法" class="headerlink" title="利用jni调用本地方法"></a><a href="#%E5%88%A9%E7%94%A8jni%E8%B0%83%E7%94%A8%E6%9C%AC%E5%9C%B0%E6%96%B9%E6%B3%95"></a>利用jni调用本地方法</h2><h4 id="使用javac-，生成native-header文件。"><a href="#使用javac-，生成native-header文件。" class="headerlink" title="使用javac ，生成native header文件。"></a><a href="#%E4%BD%BF%E7%94%A8javac-%E7%94%9F%E6%88%90native-header%E6%96%87%E4%BB%B6"></a>使用javac ，生成native header文件。</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javac -h . ZLThread.java</span><br></pre></td></tr></table></figure>
+
+<p>生成文件如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-rw-r--r-- 1 root root  404 Jul 23 19:03 com_my_ZLThread.h</span><br><span class="line">-rw-r--r-- 1 root root  469 Jul 23 19:03 ZLThread.class</span><br><span class="line">-rw-r--r-- 1 root root  349 Jul 23 19:00 ZLThread.java</span><br></pre></td></tr></table></figure>
+
+<h3 id="com-my-ZLThread-h-文件"><a href="#com-my-ZLThread-h-文件" class="headerlink" title="com_my_ZLThread.h 文件"></a><a href="#com_my_zlthreadh-%E6%96%87%E4%BB%B6"></a>com_my_ZLThread.h 文件</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/* DO NOT EDIT THIS FILE - it is machine generated */</span><br><span class="line">#include &lt;jni.h&gt;</span><br><span class="line">/* Header for class com_my_ZLThread */</span><br><span class="line"></span><br><span class="line">#ifndef _Included_com_my_ZLThread</span><br><span class="line">#define _Included_com_my_ZLThread</span><br><span class="line">#ifdef __cplusplus</span><br><span class="line">extern &quot;C&quot; &#123;</span><br><span class="line">#endif</span><br><span class="line">/* * Class:     com_my_ZLThread * Method:    start1 * Signature: ()V */</span><br><span class="line">JNIEXPORT void JNICALL Java_com_my_ZLThread_start1</span><br><span class="line">  (JNIEnv *, jobject);</span><br><span class="line"></span><br><span class="line">#ifdef __cplusplus</span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+
+<h2 id="将myThread-c文件编译成so-文件"><a href="#将myThread-c文件编译成so-文件" class="headerlink" title="将myThread.c文件编译成so 文件"></a><a href="#%E5%B0%86mythreadc%E6%96%87%E4%BB%B6%E7%BC%96%E8%AF%91%E6%88%90so-%E6%96%87%E4%BB%B6"></a>将myThread.c文件编译成so 文件</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -fPIC -I /home/tyb/java-env/jdk1.8.0_131/include -I /home/tyb/java-env/jdk1.8.0_131/include/linux/ -shared -o libOsThreadNative.so myThread.c</span><br></pre></td></tr></table></figure>
+
+<p>gcc 相关参数说明： -I 指定jdk中jni.h文件路径（一般jdk的include下有jni.h文件） -o 编译输出的库文件名。libOsThreadNative即最后Java文件中使用的是OsThreadNative库</p>
+<p>编译完后目录下会多一个libOsThreadNative.so文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-rw-r--r-- 1 root root  404 Jul 23 19:03 com_my_ZLThread.h</span><br><span class="line">-rwxr-xr-x 1 root root 8088 Jul 23 19:30 libOsThreadNative.so*</span><br><span class="line">-rw-r--r-- 1 root root  430 Jul 22 21:08 myThread.c</span><br><span class="line">-rw-r--r-- 1 root root  469 Jul 23 19:03 ZLThread.class</span><br><span class="line">-rw-r--r-- 1 root root  349 Jul 23 19:00 ZLThread.java</span><br></pre></td></tr></table></figure>
+
+<h1 id="将库文件加入到lib库中"><a href="#将库文件加入到lib库中" class="headerlink" title="将库文件加入到lib库中"></a><a href="#%E5%B0%86%E5%BA%93%E6%96%87%E4%BB%B6%E5%8A%A0%E5%85%A5%E5%88%B0lib%E5%BA%93%E4%B8%AD"></a>将库文件加入到lib库中</h1><blockquote>
+<p>Java不会在当前目录下找，他需要从class path 中找。因此需要加入到加载库中</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/study-c/</span><br></pre></td></tr></table></figure>
+
+<h1 id="运行"><a href="#运行" class="headerlink" title="运行"></a><a href="#%E8%BF%90%E8%A1%8C"></a>运行</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">//注意，如果ZLThread.class文件就在com/my下。此时还是需要在com/my下再次创建com/my文件，并将ZLThread.class移到com/my文件夹下</span><br><span class="line">java com.my.ZLThread。</span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br><span class="line">i am a new thread </span><br><span class="line">i am a new thread </span><br><span class="line">main thread </span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/blogs/tags/java/" rel="tag"># java</a>
+              <a href="/blogs/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B/" rel="tag"># 多线程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/11/%E5%AF%B9%E8%B1%A1%E5%A4%B4/" rel="next" title="对象头">
+                  对象头 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tao</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/blogs/js/comments.js"></script><script src="/blogs/js/utils.js"></script><script src="/blogs/js/motion.js"></script><script src="/blogs/js/schemes/muse.js"></script><script src="/blogs/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

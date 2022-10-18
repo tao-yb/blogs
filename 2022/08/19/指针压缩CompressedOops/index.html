@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blogs/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blogs/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blogs/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blogs/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blogs/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" integrity="sha256-AbA177XfpSnFEvgpYu1jMygiLabzPCJCRIBtR5jGc0k=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tao-yb.github.io","root":"/blogs/","images":"/blogs/images","scheme":"Muse","darkmode":false,"version":"8.13.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/blogs/js/config.js"></script>
+
+    <meta name="description" content="在介绍指针压缩前，先说几个对应的名称。 对象头众所周知，每个Java对象都有一个对象头。对象头存放着对象在元空间中的地址等等信息。 名称解释：oop (ordinary object pointer) 即普通对象指针，是JVM 中用于引用对象的句柄。可以理解，它就是在对象头中的。 在堆中，32位的对象引用占4个字节，而64位的对象引用占8个字节。也就是说，64位的对象引用大小是32位的2倍。 指针">
+<meta property="og:type" content="article">
+<meta property="og:title" content="指针压缩CompressedOops">
+<meta property="og:url" content="https://tao-yb.github.io/blogs/2022/08/19/%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9CompressedOops/index.html">
+<meta property="og:site_name" content="javaer">
+<meta property="og:description" content="在介绍指针压缩前，先说几个对应的名称。 对象头众所周知，每个Java对象都有一个对象头。对象头存放着对象在元空间中的地址等等信息。 名称解释：oop (ordinary object pointer) 即普通对象指针，是JVM 中用于引用对象的句柄。可以理解，它就是在对象头中的。 在堆中，32位的对象引用占4个字节，而64位的对象引用占8个字节。也就是说，64位的对象引用大小是32位的2倍。 指针">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-08-19T12:40:33.000Z">
+<meta property="article:modified_time" content="2022-10-18T03:07:24.474Z">
+<meta property="article:author" content="tao">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://tao-yb.github.io/blogs/2022/08/19/%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9CompressedOops/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://tao-yb.github.io/blogs/2022/08/19/%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9CompressedOops/","path":"2022/08/19/指针压缩CompressedOops/","title":"指针压缩CompressedOops"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>指针压缩CompressedOops | javaer</title>
+  
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/blogs/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blogs/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">javaer</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/blogs/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/blogs/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/blogs/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-tags"><a href="/blogs/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-about"><a href="/blogs/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E5%A4%B4"><span class="nav-number">1.</span> <span class="nav-text">对象头</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%8D%E7%A7%B0%E8%A7%A3%E9%87%8A%EF%BC%9A"><span class="nav-number">2.</span> <span class="nav-text">名称解释：</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9"><span class="nav-number">3.</span> <span class="nav-text">指针压缩</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%80%E5%90%AF%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E5%88%B0%E5%BA%95%E5%93%AA%E4%BC%9A%E4%B8%8D%E4%B8%80%E6%A0%B7%E5%91%A2%EF%BC%9F"><span class="nav-number">4.</span> <span class="nav-text">开启指针压缩到底哪会不一样呢？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%BB%93%E6%9E%9C%E5%AF%B9%E6%AF%94"><span class="nav-number">5.</span> <span class="nav-text">查看结果对比</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%90%AF%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E7%BB%93%E6%9E%9C%EF%BC%9A"><span class="nav-number">5.1.</span> <span class="nav-text">开启指针压缩模式下的结果：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%9C%BA%E6%99%AF%EF%BC%9A"><span class="nav-number">5.2.</span> <span class="nav-text">关闭指针压缩的场景：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA"><span class="nav-number">6.</span> <span class="nav-text">结论</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#jvm-%E5%AE%9E%E7%8E%B0%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%8E%9F%E7%90%86"><span class="nav-number">7.</span> <span class="nav-text">jvm 实现指针压缩的原理</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">tao</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/blogs/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/blogs/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/blogs/tags/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/08/19/%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9CompressedOops/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="指针压缩CompressedOops | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          指针压缩CompressedOops
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-08-19 20:40:33" itemprop="dateCreated datePublished" datetime="2022-08-19T20:40:33+08:00">2022-08-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-10-18 11:07:24" itemprop="dateModified" datetime="2022-10-18T11:07:24+08:00">2022-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>在介绍指针压缩前，先说几个对应的名称。</p>
+<h1 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a><a href="#%E5%AF%B9%E8%B1%A1%E5%A4%B4"></a>对象头</h1><p>众所周知，每个Java对象都有一个对象头。对象头存放着对象在元空间中的地址等等信息。</p>
+<h1 id="名称解释："><a href="#名称解释：" class="headerlink" title="名称解释："></a><a href="#%E5%90%8D%E7%A7%B0%E8%A7%A3%E9%87%8A"></a>名称解释：</h1><p>oop (ordinary object pointer) 即普通对象指针，是JVM 中用于引用对象的句柄。可以理解，它就是在对象头中的。</p>
+<p>在堆中，32位的对象引用占4个字节，而64位的对象引用占8个字节。也就是说，64位的对象引用大小是32位的2倍。</p>
+<h1 id="指针压缩"><a href="#指针压缩" class="headerlink" title="指针压缩"></a><a href="#%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9"></a>指针压缩</h1><p>在64位的JVM中，由于对象引用占用了8个字节。这同时意味着存在几个问题：</p>
+<ul>
+<li>在JVM中的对象会比32位系统占用更多的堆内存，这样会增加GC的压力</li>
+<li>在相同大小的元空间中，64位的JVM只能存储较少的对象元数据信息</li>
+<li>降低CPU缓存命中率。64位对象应用的增加，导致CPU只能缓存较少的oop信息，降低了CPU缓存的效率</li>
+</ul>
+<p>如果64位机器上，oop与32位机器上一致。那就没问题了。主要是这个问题如何解决呢？ 答案是指针压缩。</p>
+<blockquote>
+<p>指针压缩使得不同的JVM上对象占用空间大小都一样。并且在Jdk8中，指针压缩默认是开启的（网上资料介绍Jdk7中也是默认开启的）。</p>
+</blockquote>
+<h1 id="开启指针压缩到底哪会不一样呢？"><a href="#开启指针压缩到底哪会不一样呢？" class="headerlink" title="开启指针压缩到底哪会不一样呢？"></a><a href="#%E5%BC%80%E5%90%AF%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E5%88%B0%E5%BA%95%E5%93%AA%E4%BC%9A%E4%B8%8D%E4%B8%80%E6%A0%B7%E5%91%A2"></a>开启指针压缩到底哪会不一样呢？</h1><p>在JVM中，通过下面设置，可查看指针压缩的工作模式</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompressedOopsMode</span><br></pre></td></tr></table></figure>
+
+<h1 id="查看结果对比"><a href="#查看结果对比" class="headerlink" title="查看结果对比"></a><a href="#%E6%9F%A5%E7%9C%8B%E7%BB%93%E6%9E%9C%E5%AF%B9%E6%AF%94"></a>查看结果对比</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">public class Person &#123;</span><br><span class="line">    double age;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@Slf4j(topic = &quot;test&quot;)</span><br><span class="line">public class Test &#123;</span><br><span class="line">    static Person p = new Person();</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line"></span><br><span class="line">        log.debug(</span><br><span class="line">        ClassLayout.parseInstance(p).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="开启指针压缩模式下的结果："><a href="#开启指针压缩模式下的结果：" class="headerlink" title="开启指针压缩模式下的结果："></a><a href="#%E5%BC%80%E5%90%AF%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84%E7%BB%93%E6%9E%9C"></a>开启指针压缩模式下的结果：</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">heap address: 0x00000005c2200000, size: 8158 MB, Compressed Oops mode: Zero based, Oop shift amount: 3</span><br><span class="line"></span><br><span class="line">Narrow klass base: 0x0000000000000000, Narrow klass shift: 3</span><br><span class="line">Compressed class space size: 1073741824 Address: 0x00000007c0000000 Req Addr: 0x00000007c0000000</span><br><span class="line">15:57:54.480 [main] DEBUG test[36] - 4.0</span><br><span class="line">15:57:54.482 [main] DEBUG test[36] - hashcode:66133adc</span><br><span class="line">15:57:55.584 [main] DEBUG test[36] - com.syn.classlay.Person object internals:</span><br><span class="line">OFF  SZ     TYPE DESCRIPTION               VALUE</span><br><span class="line">  0   8          (object header: mark)     0x00000066133adc01 (hash: 0x66133adc; age: 0)</span><br><span class="line">  8   4          (object header: class)    0xf8017a61</span><br><span class="line"> 12   4          (alignment/padding gap)   </span><br><span class="line"> 16   8   double Person.age                0.0</span><br><span class="line">Instance size: 24 bytes</span><br><span class="line">Space losses: 4 bytes internal + 0 bytes external = 4 bytes total</span><br></pre></td></tr></table></figure>
+
+<h2 id="关闭指针压缩的场景："><a href="#关闭指针压缩的场景：" class="headerlink" title="关闭指针压缩的场景："></a><a href="#%E5%85%B3%E9%97%AD%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%9C%BA%E6%99%AF"></a>关闭指针压缩的场景：</h2><p>铜鼓-XX:-UseCompressedOops 关闭指针压缩，输出如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">OFF  SZ     TYPE DESCRIPTION               VALUE</span><br><span class="line">  0   8          (object header: mark)     0x00000066133adc01 (hash: 0x66133adc; age: 0)</span><br><span class="line">  8   8          (object header: class)    0x0000000025d4f1d0</span><br><span class="line"> 16   8   double Person.age                0.0</span><br><span class="line">Instance size: 24 bytes</span><br><span class="line">Space losses: 0 bytes internal + 0 bytes external = 0 bytes total</span><br></pre></td></tr></table></figure>
+
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a><a href="#%E7%BB%93%E8%AE%BA"></a>结论</h1><p>从指针压缩关闭开启的场景下分析可以知道： 关闭指针压缩的时候，object header: class size&#x3D;8,而关闭的时候，size&#x3D;4</p>
+<h1 id="jvm-实现指针压缩的原理"><a href="#jvm-实现指针压缩的原理" class="headerlink" title="jvm 实现指针压缩的原理"></a><a href="#jvm-%E5%AE%9E%E7%8E%B0%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%8E%9F%E7%90%86"></a>jvm 实现指针压缩的原理</h1><p>以下摘录自：<a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903768077647880">JVM之压缩指针（CompressedOops） - 掘金</a></p>
+<p>在实现上，堆中的引用其实还是按照0x0、0x1、0x2…进行存储。只不过当引用被存入64位的寄存器时，JVM将其左移3位（相当于末尾添加3个0），例如0x0、0x1、0x2…分别被转换为0x0、0x8、0x10。而当从寄存器读出时，JVM又可以右移3位，丢弃末尾的0。（oop在堆中是32位，在寄存器中是35位，2的35次方&#x3D;32G。也就是说，使用32位，来达到35位oop所能引用的堆内存空间）</p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903768077647880#heading-12">JVM之压缩指针（CompressedOops） - 掘金</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/12/%E7%B3%BB%E7%BB%9F%E7%BA%A7%E5%88%AB%E7%9A%84%E9%94%81/" rel="prev" title="系统级别的锁">
+                  <i class="fa fa-chevron-left"></i> 系统级别的锁
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/29/Netty%E4%B8%AD%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E6%96%B9%E5%BC%8F%E4%B9%8Bprotobuf/" rel="next" title="Netty中的序列化方式之protobuf">
+                  Netty中的序列化方式之protobuf <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tao</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/blogs/js/comments.js"></script><script src="/blogs/js/utils.js"></script><script src="/blogs/js/motion.js"></script><script src="/blogs/js/schemes/muse.js"></script><script src="/blogs/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

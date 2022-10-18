@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blogs/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blogs/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blogs/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blogs/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blogs/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" integrity="sha256-AbA177XfpSnFEvgpYu1jMygiLabzPCJCRIBtR5jGc0k=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tao-yb.github.io","root":"/blogs/","images":"/blogs/images","scheme":"Muse","darkmode":false,"version":"8.13.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/blogs/js/config.js"></script>
+
+    <meta name="description" content="为什么要做序列化    在网络通讯中，数据以二进制形式进行传输。假设在我们网络通讯业务中，客户端需要将Person对象传到服务端进行处理，如何传输呢？总不能直接发送Person对象实例吧？因此需要将Person对象实例经过序列化后进行传输。 序列化的方式有哪些    在Java应用程序中，可以通过实现Serializable接口申明类可以进行序列化。常用的序列化的方式有xml、JSON、Proto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Netty中的序列化方式之protobuf">
+<meta property="og:url" content="https://tao-yb.github.io/blogs/2022/08/29/Netty%E4%B8%AD%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E6%96%B9%E5%BC%8F%E4%B9%8Bprotobuf/index.html">
+<meta property="og:site_name" content="javaer">
+<meta property="og:description" content="为什么要做序列化    在网络通讯中，数据以二进制形式进行传输。假设在我们网络通讯业务中，客户端需要将Person对象传到服务端进行处理，如何传输呢？总不能直接发送Person对象实例吧？因此需要将Person对象实例经过序列化后进行传输。 序列化的方式有哪些    在Java应用程序中，可以通过实现Serializable接口申明类可以进行序列化。常用的序列化的方式有xml、JSON、Proto">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-08-29T12:45:01.000Z">
+<meta property="article:modified_time" content="2022-10-18T03:13:37.845Z">
+<meta property="article:author" content="tao">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="网络编程">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://tao-yb.github.io/blogs/2022/08/29/Netty%E4%B8%AD%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E6%96%B9%E5%BC%8F%E4%B9%8Bprotobuf/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://tao-yb.github.io/blogs/2022/08/29/Netty%E4%B8%AD%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E6%96%B9%E5%BC%8F%E4%B9%8Bprotobuf/","path":"2022/08/29/Netty中的序列化方式之protobuf/","title":"Netty中的序列化方式之protobuf"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Netty中的序列化方式之protobuf | javaer</title>
+  
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/blogs/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blogs/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">javaer</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/blogs/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/blogs/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/blogs/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-tags"><a href="/blogs/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-about"><a href="/blogs/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%81%9A%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">为什么要做序列化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96%E7%9A%84%E6%96%B9%E5%BC%8F%E6%9C%89%E5%93%AA%E4%BA%9B"><span class="nav-number">2.</span> <span class="nav-text">序列化的方式有哪些</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Netty-%E4%B8%AD%E4%BD%BF%E7%94%A8protobuf%E5%BA%8F%E5%88%97%E5%8C%96%E6%B6%88%E6%81%AF"><span class="nav-number">3.</span> <span class="nav-text">Netty 中使用protobuf序列化消息</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#step1-%E5%AE%9A%E4%B9%89pb%E6%A0%BC%E5%BC%8F"><span class="nav-number">3.1.</span> <span class="nav-text">step1 :定义pb格式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#step2-%E5%B0%86pb%E7%94%9F%E6%88%90Java%E6%96%87%E4%BB%B6%E4%BB%A3%E7%A0%81"><span class="nav-number">3.2.</span> <span class="nav-text">step2 : 将pb生成Java文件代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E4%BD%BF%E7%94%A8%EF%BC%9A"><span class="nav-number">3.3.</span> <span class="nav-text">服务端使用：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BD%BF%E7%94%A8"><span class="nav-number">3.4.</span> <span class="nav-text">客户端使用</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">tao</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/blogs/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/blogs/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/blogs/tags/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/08/29/Netty%E4%B8%AD%E7%9A%84%E5%BA%8F%E5%88%97%E5%8C%96%E6%96%B9%E5%BC%8F%E4%B9%8Bprotobuf/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Netty中的序列化方式之protobuf | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Netty中的序列化方式之protobuf
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-08-29 20:45:01" itemprop="dateCreated datePublished" datetime="2022-08-29T20:45:01+08:00">2022-08-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-10-18 11:13:37" itemprop="dateModified" datetime="2022-10-18T11:13:37+08:00">2022-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/Netty/" itemprop="url" rel="index"><span itemprop="name">Netty</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h3 id="为什么要做序列化"><a href="#为什么要做序列化" class="headerlink" title="为什么要做序列化"></a>为什么要做序列化</h3><p>    在网络通讯中，数据以二进制形式进行传输。假设在我们网络通讯业务中，客户端需要将Person对象传到服务端进行处理，如何传输呢？总不能直接发送Person对象实例吧？因此需要将Person对象实例经过序列化后进行传输。</p>
+<h3 id="序列化的方式有哪些"><a href="#序列化的方式有哪些" class="headerlink" title="序列化的方式有哪些"></a>序列化的方式有哪些</h3><p>    在Java应用程序中，可以通过实现Serializable接口申明类可以进行序列化。常用的序列化的方式有xml、JSON、Protobuf、avro等。这几种序列化的方式优缺点如下：</p>
+<ul>
+<li><p>XML格式中定义多个对象存在大量重复的Scheme定义，对高效的传输而言，无疑增加了网络传输的开销。</p>
+</li>
+<li><p>JSON是一种比较通用给的格式。能支持在不通语言中消息格式定义。传输数量比XML少很多</p>
+</li>
+<li><p>Protobuf是Google开源的一种开源、跨平台的用于做数据结果序列化的工具。效率比上面几种要优</p>
+</li>
+<li><p>avro 在大数据中应用比较多</p>
+</li>
+</ul>
+<h3 id="Netty-中使用protobuf序列化消息"><a href="#Netty-中使用protobuf序列化消息" class="headerlink" title="Netty 中使用protobuf序列化消息"></a>Netty 中使用protobuf序列化消息</h3><h4 id="step1-定义pb格式"><a href="#step1-定义pb格式" class="headerlink" title="step1 :定义pb格式"></a>step1 :定义pb格式</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">syntax = &quot;proto3&quot;;</span><br><span class="line">option java_package = &quot;com.serilizer.pb&quot;;</span><br><span class="line">option java_outer_classname = &quot;PersonProto&quot;;</span><br><span class="line"></span><br><span class="line">message PersonProtoBean &#123;</span><br><span class="line">string name = 1;</span><br><span class="line">int32 age = 2;</span><br><span class="line">string address = 3 ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="step2-将pb生成Java文件代码"><a href="#step2-将pb生成Java文件代码" class="headerlink" title="step2 : 将pb生成Java文件代码"></a>step2 : 将pb生成Java文件代码</h4><p>通过如下命令，用pb定义的格式，将其生成Java类（事先需要安装protobuf）。</p>
+<p>protoc 需要3个参数：</p>
+<ul>
+<li><p>第1个参数： 指定pb 文件所在的文件夹</p>
+</li>
+<li><p>第2个参数：指定需要将Java类文件生成到哪个路径下</p>
+</li>
+<li><p>第3个参数：指pb文件名字</p>
+</li>
+</ul>
+<blockquote>
+<p>注意，这个地方的路径需要根据pb文件的路径以及需要将Java文件生成在哪个地方来定义。本示例仅仅是示例</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">protoc -I=.   --java_out=../../    person.pb</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以使用pb在Netty客户端与服务端之间传输了。示例如下。</p>
+<h4 id="服务端使用："><a href="#服务端使用：" class="headerlink" title="服务端使用："></a>服务端使用：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">@Slf4j</span><br><span class="line">public class Server &#123;</span><br><span class="line">    public static void main(String[] args) throws InterruptedException &#123;</span><br><span class="line"></span><br><span class="line">        EventLoopGroup group = new NioEventLoopGroup();</span><br><span class="line">        ServerBootstrap bootstrap = new ServerBootstrap();</span><br><span class="line">        bootstrap.group(group)</span><br><span class="line">                .channel(NioServerSocketChannel.class)</span><br><span class="line">                .childHandler(new ChannelInitializer&lt;Channel&gt;() &#123;</span><br><span class="line">                    @Override</span><br><span class="line">                    protected void initChannel(Channel channel) throws Exception &#123;</span><br><span class="line">                        /*去掉消息长度部分，并且根据消息长度读取实际数据*/</span><br><span class="line">                        channel.pipeline().addLast(new ProtobufVarint32FrameDecoder());</span><br><span class="line">                        channel.pipeline().addLast(new ProtobufDecoder(PersonProto.PersonProtoBean.getDefaultInstance()));</span><br><span class="line">                        channel.pipeline().addLast(new ServerHandler()) ;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line">        final ChannelFuture channelFuture = bootstrap.bind(9999);</span><br><span class="line">        log.info(&quot;server started&quot;);</span><br><span class="line">        channelFuture.channel().closeFuture().sync();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ServerHandler的实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">package com.serilizer;</span><br><span class="line"></span><br><span class="line">import com.serilizer.pb.PersonProto;</span><br><span class="line">import io.netty.channel.ChannelHandlerContext;</span><br><span class="line">import io.netty.channel.ChannelInboundHandlerAdapter;</span><br><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * @author tyb</span><br><span class="line"> * @Description</span><br><span class="line"> * @create 2022-05-05 20:35</span><br><span class="line"> */</span><br><span class="line">@Slf4j</span><br><span class="line">public class ServerHandler extends ChannelInboundHandlerAdapter &#123;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception &#123;</span><br><span class="line">        PersonProto.PersonProtoBean personProtoBean = (PersonProto.PersonProtoBean)msg;</span><br><span class="line">        log.info(&quot;server received :[&#123;&#125;]&quot;, personProtoBean.getName());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="客户端使用"><a href="#客户端使用" class="headerlink" title="客户端使用"></a>客户端使用</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">package com.serilizer;</span><br><span class="line"></span><br><span class="line">import io.netty.bootstrap.Bootstrap;</span><br><span class="line">import io.netty.channel.Channel;</span><br><span class="line">import io.netty.channel.ChannelFuture;</span><br><span class="line">import io.netty.channel.ChannelInitializer;</span><br><span class="line">import io.netty.channel.EventLoopGroup;</span><br><span class="line">import io.netty.channel.nio.NioEventLoopGroup;</span><br><span class="line">import io.netty.channel.socket.nio.NioSocketChannel;</span><br><span class="line">import io.netty.handler.codec.protobuf.ProtobufEncoder;</span><br><span class="line">import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * @author tyb</span><br><span class="line"> * @Description</span><br><span class="line"> * @create 2022-05-05 20:43</span><br><span class="line"> */</span><br><span class="line">public class Client &#123;</span><br><span class="line">    public static void main(String[] args) throws InterruptedException &#123;</span><br><span class="line">        EventLoopGroup group = new NioEventLoopGroup();</span><br><span class="line"></span><br><span class="line">        Bootstrap bootstrap = new Bootstrap();</span><br><span class="line">        bootstrap.group(group)</span><br><span class="line">                .channel(NioSocketChannel.class)</span><br><span class="line">                .handler(new ChannelInitializer&lt;Channel&gt;() &#123;</span><br><span class="line">                    @Override</span><br><span class="line">                    protected void initChannel(Channel channel) throws Exception &#123;</span><br><span class="line">                        /* 解决半包粘包问题*/</span><br><span class="line">                        channel.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());</span><br><span class="line">                        /* 序列化*/</span><br><span class="line">                        channel.pipeline().addLast(new ProtobufEncoder());</span><br><span class="line">                        /* 实际业务处理*/</span><br><span class="line">                        channel.pipeline().addLast(new ClientHandler());</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;);</span><br><span class="line">        final ChannelFuture channelFuture = bootstrap.connect(&quot;127.0.0.1&quot;, 9999);</span><br><span class="line">        channelFuture.channel().closeFuture().sync();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ClientHandler实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">package com.serilizer;</span><br><span class="line"></span><br><span class="line">import com.serilizer.pb.PersonProto;</span><br><span class="line">import io.netty.buffer.ByteBuf;</span><br><span class="line">import io.netty.buffer.Unpooled;</span><br><span class="line">import io.netty.channel.ChannelHandler;</span><br><span class="line">import io.netty.channel.ChannelHandlerContext;</span><br><span class="line">import io.netty.channel.SimpleChannelInboundHandler;</span><br><span class="line">import io.netty.util.CharsetUtil;</span><br><span class="line">import io.netty.util.concurrent.EventExecutorGroup;</span><br><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * @author tyb</span><br><span class="line"> * @Description</span><br><span class="line"> * @create 2022-05-05 20:44</span><br><span class="line"> */</span><br><span class="line">@Slf4j</span><br><span class="line">public class ClientHandler extends SimpleChannelInboundHandler&lt;ByteBuf&gt; &#123;</span><br><span class="line">    @Override</span><br><span class="line">    public void channelActive(ChannelHandlerContext ctx) throws Exception &#123;</span><br><span class="line">        final PersonProto.PersonProtoBean.Builder builder = PersonProto.PersonProtoBean.newBuilder();</span><br><span class="line">        builder.setName(&quot;tao&quot;);</span><br><span class="line">        builder.setAge(36);</span><br><span class="line">        builder.setAddress(&quot;wuhan&quot;);</span><br><span class="line">        ctx.writeAndFlush(builder.build());</span><br><span class="line">        log.info(&quot;sent over~&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception &#123;</span><br><span class="line">        log.error(&quot;exception occur&quot;,cause.getCause());</span><br><span class="line">        ctx.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf) throws Exception &#123;</span><br><span class="line">        log.info(&quot;client received ：【&#123;&#125;】&quot;,byteBuf.toString(CharsetUtil.UTF_8));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端输出如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">21:26:56.068 [nioEventLoopGroup-2-1] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.linkCapacity: 16</span><br><span class="line">21:26:56.068 [nioEventLoopGroup-2-1] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.ratio: 8</span><br><span class="line">21:26:56.075 [nioEventLoopGroup-2-1] INFO com.serilizer.ClientHandler - sent over~</span><br></pre></td></tr></table></figure>
+
+<p>服务端输出如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">21:26:49.836 [main] INFO com.serilizer.Server - server started</span><br><span class="line">21:26:56.077 [nioEventLoopGroup-2-2] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.maxCapacityPerThread: 4096</span><br><span class="line">21:26:56.077 [nioEventLoopGroup-2-2] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.maxSharedCapacityFactor: 2</span><br><span class="line">21:26:56.077 [nioEventLoopGroup-2-2] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.linkCapacity: 16</span><br><span class="line">21:26:56.077 [nioEventLoopGroup-2-2] DEBUG io.netty.util.Recycler - -Dio.netty.recycler.ratio: 8</span><br><span class="line">21:26:56.081 [nioEventLoopGroup-2-2] DEBUG io.netty.buffer.AbstractByteBuf - -Dio.netty.buffer.bytebuf.checkAccessible: true</span><br><span class="line">21:26:56.083 [nioEventLoopGroup-2-2] DEBUG io.netty.util.ResourceLeakDetectorFactory - Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@3520bcf3</span><br><span class="line">21:26:56.099 [nioEventLoopGroup-2-2] INFO com.serilizer.ServerHandler - server received :[tao]</span><br></pre></td></tr></table></figure>
+
+<p>这样就实现了Netty中pb的序列化。</p>
+<p>最后，在服务端的使用中，通过Netty内置的ProtobufDecoder指定解码的Class。这个地方只能定义一个class。如果要用通用的格式，那就需要用到自定义消息格式了</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/blogs/tags/Java/" rel="tag"># Java</a>
+              <a href="/blogs/tags/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="tag"># 网络编程</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/19/%E6%8C%87%E9%92%88%E5%8E%8B%E7%BC%A9CompressedOops/" rel="prev" title="指针压缩CompressedOops">
+                  <i class="fa fa-chevron-left"></i> 指针压缩CompressedOops
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/29/synchronized%E4%B8%8E%E5%AF%B9%E8%B1%A1%E5%A4%B4/" rel="next" title="synchronized与对象头">
+                  synchronized与对象头 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tao</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/blogs/js/comments.js"></script><script src="/blogs/js/utils.js"></script><script src="/blogs/js/motion.js"></script><script src="/blogs/js/schemes/muse.js"></script><script src="/blogs/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.1.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/blogs/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blogs/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blogs/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blogs/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blogs/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" integrity="sha256-AbA177XfpSnFEvgpYu1jMygiLabzPCJCRIBtR5jGc0k=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tao-yb.github.io","root":"/blogs/","images":"/blogs/images","scheme":"Muse","darkmode":false,"version":"8.13.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/blogs/js/config.js"></script>
+
+    <meta name="description" content="查看对象头。我们常说对象头，但是对象头到底里面是什么呢？ 为查看对象头，我们引用jol-core pom引用1234567&lt;!-- https:&#x2F;&#x2F;mvnrepository.com&#x2F;artifact&#x2F;org.openjdk.jol&#x2F;jol-core --&gt;    &lt;dependency&gt;        &lt;groupId&gt;org.openjdk.jol&lt;&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="对象头">
+<meta property="og:url" content="https://tao-yb.github.io/blogs/2022/08/11/%E5%AF%B9%E8%B1%A1%E5%A4%B4/index.html">
+<meta property="og:site_name" content="javaer">
+<meta property="og:description" content="查看对象头。我们常说对象头，但是对象头到底里面是什么呢？ 为查看对象头，我们引用jol-core pom引用1234567&lt;!-- https:&#x2F;&#x2F;mvnrepository.com&#x2F;artifact&#x2F;org.openjdk.jol&#x2F;jol-core --&gt;    &lt;dependency&gt;        &lt;groupId&gt;org.openjdk.jol&lt;&#x2F;">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-08-11T12:40:05.000Z">
+<meta property="article:modified_time" content="2022-10-18T03:07:21.567Z">
+<meta property="article:author" content="tao">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://tao-yb.github.io/blogs/2022/08/11/%E5%AF%B9%E8%B1%A1%E5%A4%B4/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://tao-yb.github.io/blogs/2022/08/11/%E5%AF%B9%E8%B1%A1%E5%A4%B4/","path":"2022/08/11/对象头/","title":"对象头"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>对象头 | javaer</title>
+  
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/blogs/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blogs/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">javaer</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/blogs/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/blogs/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/blogs/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-tags"><a href="/blogs/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-about"><a href="/blogs/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#pom%E5%BC%95%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">pom引用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%AF%B9%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">定义对象</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%A4%B4"><span class="nav-number">2.1.</span> <span class="nav-text">查看对象的对象头</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E5%AE%9A%E4%B9%89%EF%BC%88logback-xml%EF%BC%89%EF%BC%9A"><span class="nav-number">2.2.</span> <span class="nav-text">日志定义（logback.xml）：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%EF%BC%9A"><span class="nav-number">2.3.</span> <span class="nav-text">输出：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#object-header"><span class="nav-number">3.</span> <span class="nav-text">object header</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#object-header-1"><span class="nav-number">3.1.</span> <span class="nav-text">object header</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#mark-word"><span class="nav-number">3.1.1.</span> <span class="nav-text">mark word</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#klass-pointer"><span class="nav-number">3.1.2.</span> <span class="nav-text">klass pointer</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A4%A7%E7%AB%AF%E5%AD%98%E5%82%A8%E4%B8%8E%E5%B0%8F%E7%AB%AF%E5%AD%98%E5%82%A8"><span class="nav-number">4.</span> <span class="nav-text">大端存储与小端存储</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">tao</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/blogs/archives/">
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/blogs/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/blogs/tags/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/08/11/%E5%AF%B9%E8%B1%A1%E5%A4%B4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="对象头 | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          对象头
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-08-11 20:40:05" itemprop="dateCreated datePublished" datetime="2022-08-11T20:40:05+08:00">2022-08-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2022-10-18 11:07:21" itemprop="dateModified" datetime="2022-10-18T11:07:21+08:00">2022-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/JVM/" itemprop="url" rel="index"><span itemprop="name">JVM</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>查看对象头。我们常说对象头，但是对象头到底里面是什么呢？ 为查看对象头，我们引用jol-core</p>
+<h1 id="pom引用"><a href="#pom引用" class="headerlink" title="pom引用"></a><a href="#pom%E5%BC%95%E7%94%A8"></a>pom引用</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- https://mvnrepository.com/artifact/org.openjdk.jol/jol-core --&gt;</span><br><span class="line">    &lt;dependency&gt;</span><br><span class="line">        &lt;groupId&gt;org.openjdk.jol&lt;/groupId&gt;</span><br><span class="line">        &lt;artifactId&gt;jol-core&lt;/artifactId&gt;</span><br><span class="line">        &lt;version&gt;0.16&lt;/version&gt;</span><br><span class="line">        &lt;scope&gt;compile&lt;/scope&gt;</span><br><span class="line">    &lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<h1 id="定义对象"><a href="#定义对象" class="headerlink" title="定义对象"></a><a href="#%E5%AE%9A%E4%B9%89%E5%AF%B9%E8%B1%A1"></a>定义对象</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public class Person &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看对象的对象头"><a href="#查看对象的对象头" class="headerlink" title="查看对象的对象头"></a><a href="#%E6%9F%A5%E7%9C%8B%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%A4%B4"></a>查看对象的对象头</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">package com.syn.classlay;</span><br><span class="line"></span><br><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line">import org.openjdk.jol.info.ClassLayout;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">/** * @author tyb * @Description</span><br><span class="line"> * @create 2022-07-29 21:21 */</span><br><span class="line">@Slf4j(topic = &quot;test&quot;)</span><br><span class="line">public class Test &#123;</span><br><span class="line">    static Person p = new Person();</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        //log.debug(&quot;hashcode:&#123;&#125;&quot;,Integer.toHexString(p.hashCode()));</span><br><span class="line">        log.debug(</span><br><span class="line">        ClassLayout.parseInstance(p).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="日志定义（logback-xml）："><a href="#日志定义（logback-xml）：" class="headerlink" title="日志定义（logback.xml）："></a><a href="#%E6%97%A5%E5%BF%97%E5%AE%9A%E4%B9%89logbackxml"></a>日志定义（logback.xml）：</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&lt;configuration&gt;</span><br><span class="line">    &lt;appender name=&quot;STDOUT&quot; class=&quot;ch.qos.logback.core.ConsoleAppender&quot;&gt;</span><br><span class="line">        &lt;encoder&gt;</span><br><span class="line">            &lt;Pattern&gt;</span><br><span class="line">                %d&#123;HH:mm:ss.SSS&#125; [%t] %-5level %logger[36] - %msg%n</span><br><span class="line">            &lt;/Pattern&gt;</span><br><span class="line">        &lt;/encoder&gt;</span><br><span class="line">    &lt;/appender&gt;</span><br><span class="line"></span><br><span class="line">    &lt;logger name=&quot;test&quot; level=&quot;debug&quot; additivity=&quot;false&quot;&gt;</span><br><span class="line">        &lt;appender-ref ref=&quot;STDOUT&quot;&gt;&lt;/appender-ref&gt;</span><br><span class="line">    &lt;/logger&gt;</span><br><span class="line"></span><br><span class="line">    &lt;root level=&quot;error&quot;&gt;</span><br><span class="line">        &lt;appender-ref ref=&quot;STDOUT&quot;/&gt;</span><br><span class="line">    &lt;/root&gt;</span><br><span class="line">&lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="输出："><a href="#输出：" class="headerlink" title="输出："></a><a href="#%E8%BE%93%E5%87%BA"></a>输出：</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">21:36:07.564 [main] DEBUG test[36] - com.syn.classlay.Person object internals:</span><br><span class="line">OFF  SZ   TYPE DESCRIPTION               VALUE</span><br><span class="line">  0   8        (object header: mark)     0x0000000000000001 (non-biasable; age: 0)</span><br><span class="line">  8   4        (object header: class)    0xf8017a61</span><br><span class="line"> 12   4        (object alignment gap)    </span><br><span class="line">Instance size: 16 bytes</span><br><span class="line">Space losses: 0 bytes internal + 4 bytes external = 4 bytes total</span><br></pre></td></tr></table></figure>
+
+<p>如果给对象Person 加一个整数字段，再次查看对象头：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">OFF  SZ   TYPE DESCRIPTION               VALUE</span><br><span class="line">  0   8        (object header: mark)     0x0000000000000001 (non-biasable; age: 0)</span><br><span class="line">  8   4        (object header: class)    0xf8017a61</span><br><span class="line"> 12   4    int Person.age                0</span><br><span class="line">Instance size: 16 bytes</span><br><span class="line">Space losses: 0 bytes internal + 0 bytes external = 0 bytes total</span><br></pre></td></tr></table></figure>
+
+<p>从上面信息可知：</p>
+<ul>
+<li>对象头中的Mark占用8字节 64位</li>
+<li>对象头中的class占用4字节 32位</li>
+</ul>
+<h1 id="object-header"><a href="#object-header" class="headerlink" title="object header"></a><a href="#object-header"></a>object header</h1><h2 id="object-header-1"><a href="#object-header-1" class="headerlink" title="object header"></a><a href="#object-header-2"></a>object header</h2><blockquote>
+<p>object header Common structure at the beginning of every GC-managed heap object. (Every oop points to an object header.) Includes fundamental information about the heap object’s layout, type, GC state, synchronization state, and identity hash code. Consists of two words. In arrays it is immediately followed by a length field. Note that both Java objects and VM-internal objects have a common object header format.</p>
+</blockquote>
+<p>object header中又包括：</p>
+<ul>
+<li>the heap object’s layout</li>
+<li>type</li>
+<li>GC state</li>
+<li>synchronization state</li>
+<li>identity hash code</li>
+</ul>
+<p>它由2部分组成： mark word,klass pointer</p>
+<h3 id="mark-word"><a href="#mark-word" class="headerlink" title="mark word"></a><a href="#mark-word"></a>mark word</h3><p>它占用8bytes</p>
+<blockquote>
+<p>mark word The first word of every object header. Usually a set of bitfields including synchronization state and identity hash code. May also be a pointer (with characteristic low bit encoding) to synchronization related information. During GC, may contain GC state bits.</p>
+</blockquote>
+<h3 id="klass-pointer"><a href="#klass-pointer" class="headerlink" title="klass pointer"></a><a href="#klass-pointer"></a>klass pointer</h3><blockquote>
+<p>The second word of every object header. Points to another object (a metaobject) which describes the layout and behavior of the original object. For Java objects, the “klass” contains a C++ style “vtable”.</p>
+</blockquote>
+<p>它占用4bytes 或者8bytes。如果开启指针压缩的话，就只占用4bytes。jdk8中，类加载的metadata信息放在元空间。klass pointer指向元空间的地址。</p>
+<h1 id="大端存储与小端存储"><a href="#大端存储与小端存储" class="headerlink" title="大端存储与小端存储"></a><a href="#%E5%A4%A7%E7%AB%AF%E5%AD%98%E5%82%A8%E4%B8%8E%E5%B0%8F%E7%AB%AF%E5%AD%98%E5%82%A8"></a>大端存储与小端存储</h1><p>高字节存放在高地址，底字节存低地址。因此，hashcode的二进制中，由于小端存储，因此hashcode是反过来的。</p>
+<p>数据的高位字节在前（内存的低地址），低位字节在后。这样的存储模式类似于把数据当做字符串处理，内存地址由小到大增长</p>
+<blockquote>
+<p>jol-core 不同版本打印的数据有存在差异。可以使用10版本查看到字节输出。如jol 0.10 版本的输出：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">18:47:59.604 [main] DEBUG test[36] - hashcode:1517365b</span><br><span class="line">18:48:00.805 [main] DEBUG test[36] - com.syn.classlay.Person object internals:</span><br><span class="line"> OFFSET  SIZE   TYPE DESCRIPTION                               VALUE</span><br><span class="line">      0     4        (object header)                           01 5b 36 17 (00000001 01011011 00110110 00010111) (389438209)</span><br><span class="line">      4     4        (object header)                           15 00 00 00 (00010101 00000000 00000000 00000000) (21)</span><br><span class="line">      8     4        (object header)                           61 7a 01 f8 (01100001 01111010 00000001 11111000) (-134120863)</span><br><span class="line">     12     4    int Person.age                                0</span><br><span class="line">Instance size: 16 bytes</span><br><span class="line">Space losses: 0 bytes internal + 0 bytes external = 0 bytes total</span><br></pre></td></tr></table></figure>
+
+<p>长度说明（一共8字节）：</p>
+<ul>
+<li>unused 25位</li>
+<li>hashcode 31 位</li>
+<li>未用到 1 位</li>
+<li>age 4 位</li>
+<li>偏向锁标识：1 位</li>
+<li>锁状态：2 位</li>
+</ul>
+<p>从上面hashcode和对象头输出可以看到，由于小端存储，hashcode的输出的相反的。</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/7b1c6d7394e2">https://www.jianshu.com/p/7b1c6d7394e2</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/10/Java%E7%BA%BF%E7%A8%8B%E4%B8%8E%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB/" rel="prev" title="Java线程与操作系统之间的关系">
+                  <i class="fa fa-chevron-left"></i> Java线程与操作系统之间的关系
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/blogs/2022/08/12/%E7%B3%BB%E7%BB%9F%E7%BA%A7%E5%88%AB%E7%9A%84%E9%94%81/" rel="next" title="系统级别的锁">
+                  系统级别的锁 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">tao</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/blogs/js/comments.js"></script><script src="/blogs/js/utils.js"></script><script src="/blogs/js/motion.js"></script><script src="/blogs/js/schemes/muse.js"></script><script src="/blogs/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
