@@ -2,6 +2,7 @@
 title: 指针压缩CompressedOops
 date: 2022-08-19 20:40:33
 tags:
+categories: JVM
 ---
 
 在介绍指针压缩前，先说几个对应的名称。

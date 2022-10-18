@@ -1,7 +1,10 @@
 ---
 title: Java线程与操作系统之间的关系
 date: 2022-08-10 20:39:21
-tags:
+tags: 
+- java
+- 多线程
+categories: Java多线程
 ---
 
 在Linux上，通过pthread_create系统接口可以创建一个线程。我们在Java中，通过new Thread创建出来的线程其实是JVM通过调用pthread_create 创建的。

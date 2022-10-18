@@ -2,6 +2,7 @@
 title: synchronized与对象头
 date: 2022-08-29 21:20:58
 tags:
+
 ---
 
 引叙： Java里通过AQS实现的锁，在加锁时通过设置state 变量值就能实现上锁。但是synchronized内置锁，它是不是也和AQS 类似会修改变量值呢?如果修改的话，它又是修改了对象什么东西?

@@ -3,6 +3,9 @@ layout: linux
 title: Netty中的序列化方式之protobuf
 date: 2022-08-29 20:45:01
 tags:
+- Java 
+- 网络编程
+categories: Netty
 ---
 
 ### 为什么要做序列化
