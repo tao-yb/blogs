@@ -124,7 +124,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/blogs/archives/">
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -135,7 +135,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/blogs/tags/">
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -164,6 +164,125 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/10/18/%E7%BA%BF%E7%A8%8B%E7%9A%84%E4%B8%AD%E6%96%AD/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/blogs/2022/10/18/%E7%BA%BF%E7%A8%8B%E7%9A%84%E4%B8%AD%E6%96%AD/" class="post-title-link" itemprop="url">thread-interrupt</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-10-18 16:14:52 / Modified: 16:21:18" itemprop="dateCreated datePublished" datetime="2022-10-18T16:14:52+08:00">2022-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">Java多线程</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>线程的stop等方法都被废弃了。在一些场景下，我们可以通过让线程中断的方式结束掉线程。</p>
+<p>首先抛出2个问题：</p>
+<ol>
+<li>synchronized加锁的线程可以被中断吗？</li>
+<li>ReentrantLock加锁可以被中断吗？</li>
+</ol>
+<p>回答上面的问题，先看看2个小示例：</p>
+<h2 id="synchronized加锁是否可以中断"><a href="#synchronized加锁是否可以中断" class="headerlink" title="synchronized加锁是否可以中断"></a><a href="#synchronized%E5%8A%A0%E9%94%81%E6%98%AF%E5%90%A6%E5%8F%AF%E4%BB%A5%E4%B8%AD%E6%96%AD"></a>synchronized加锁是否可以中断</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">/** * @author javaer * @Description * @create 2022-09-28 10:56 */</span><br><span class="line">@Slf4j</span><br><span class="line">public class SyncInterrupt &#123;</span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        Object o = new Object();</span><br><span class="line"></span><br><span class="line">        Thread t1 = new Thread(() -&gt; &#123;            synchronized (o) &#123;                log.debug(&quot;thread start ~~&quot;);                while (Thread.currentThread().isInterrupted()) &#123;                    break;                &#125;            &#125;            log.debug(&quot;thread over~&quot;);        &#125;, &quot;t1&quot;);        t1.start();        synchronized (o) &#123;            Thread.sleep(1000);            log.debug(&quot;main  interrupt t1 thread&quot;);            t1.interrupt();            t1.join();        &#125;    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">18:26:34.169 [main] DEBUG com.demo.SyncInterrupt - main  interrupt t1 thread</span><br></pre></td></tr></table></figure>
+
+<p>这说明主线程抢占锁后，中断t1线程并等待t1执行完毕。t1无法响应中断</p>
+<h2 id="ReentrantLock加锁是否可以中断"><a href="#ReentrantLock加锁是否可以中断" class="headerlink" title="ReentrantLock加锁是否可以中断"></a><a href="#reentrantlock%E5%8A%A0%E9%94%81%E6%98%AF%E5%90%A6%E5%8F%AF%E4%BB%A5%E4%B8%AD%E6%96%AD"></a>ReentrantLock加锁是否可以中断</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">**</span><br><span class="line"> * @author javaer</span><br><span class="line"> * @Description</span><br><span class="line"> * @create 2022-09-28 18:28</span><br><span class="line"> */</span><br><span class="line">@Slf4j</span><br><span class="line">public class ReetInterrupt &#123;</span><br><span class="line"></span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ReentrantLock lock = new ReentrantLock();</span><br><span class="line">        Thread t1 = new Thread(() -&gt; &#123;            try &#123;                lock.lock();                log.debug(&quot;thread start ~~&quot;);                while (Thread.currentThread().isInterrupted()) &#123;                    break;                &#125;                log.debug(&quot;thread over~&quot;);            &#125;  finally &#123;                lock.unlock();            &#125;        &#125;, &quot;t1&quot;);        t1.start();        lock.lock();        try &#123;            Thread.sleep(1000);            log.debug(&quot;main  interrupt t1 thread&quot;);            t1.interrupt();            t1.join();        &#125; finally &#123;            lock.unlock();        &#125;    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">18:35:25.735 [main] DEBUG com.demo.ReetInterrupt - main  interrupt t1 thread</span><br></pre></td></tr></table></figure>
+
+<p>说明ReentrantLock.lock 方法不支持打断。如果要打断，应该使用lockInterruptibly方法。</p>
+<p>将上面demo 改造以下，通过lockInterruptibly方法加锁</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">/** * @author javaer * @Description * @create 2022-09-28 18:28 */</span><br><span class="line">@Slf4j</span><br><span class="line">public class ReetInterrupt &#123;</span><br><span class="line"></span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ReentrantLock lock = new ReentrantLock();</span><br><span class="line">        Thread t1 = new Thread(() -&gt; &#123;            try &#123;                lock.lockInterruptibly();                log.debug(&quot;thread start ~~&quot;);                while (Thread.currentThread().isInterrupted()) &#123;                    break;                &#125;                log.debug(&quot;thread over~&quot;);            &#125; catch (InterruptedException e) &#123;                log.error(&quot;exception :&quot;, e);            &#125; finally &#123;                lock.unlock();            &#125;        &#125;, &quot;t1&quot;);        t1.start();        lock.lock();        try &#123;            Thread.sleep(1000);            log.debug(&quot;main  interrupt t1 thread&quot;);            t1.interrupt();            t1.join();        &#125; finally &#123;            lock.unlock();        &#125;    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">18:36:49.028 [main] DEBUG com.demo.ReetInterrupt - main  interrupt t1 thread</span><br><span class="line">18:36:49.031 [t1] ERROR com.demo.ReetInterrupt - exception :</span><br><span class="line">java.lang.InterruptedException: null</span><br><span class="line">    at java.util.concurrent.locks.AbstractQueuedSynchronizer.doAcquireInterruptibly(AbstractQueuedSynchronizer.java:898)</span><br><span class="line">    at java.util.concurrent.locks.AbstractQueuedSynchronizer.acquireInterruptibly(AbstractQueuedSynchronizer.java:1222)</span><br><span class="line">    at java.util.concurrent.locks.ReentrantLock.lockInterruptibly(ReentrantLock.java:335)</span><br><span class="line">    at com.demo.ReetInterrupt.lambda$main$0(ReetInterrupt.java:21)</span><br><span class="line">    at java.lang.Thread.run(Thread.java:748)</span><br><span class="line">Exception in thread &quot;t1&quot; java.lang.IllegalMonitorStateException</span><br><span class="line">    at java.util.concurrent.locks.ReentrantLock$Sync.tryRelease(ReentrantLock.java:151)</span><br><span class="line">    at java.util.concurrent.locks.AbstractQueuedSynchronizer.release(AbstractQueuedSynchronizer.java:1261)</span><br><span class="line">    at java.util.concurrent.locks.ReentrantLock.unlock(ReentrantLock.java:457)</span><br><span class="line">    at com.demo.ReetInterrupt.lambda$main$0(ReetInterrupt.java:30)</span><br><span class="line">    at java.lang.Thread.run(Thread.java:748)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在非登场场景下，如ReentrantLock\synchronized 已经进入到临界区内，那么也是也响应的</p>
+</blockquote>
+<h1 id="JDK相关API"><a href="#JDK相关API" class="headerlink" title="JDK相关API"></a><a href="#jdk%E7%9B%B8%E5%85%B3api"></a>JDK相关API</h1><ul>
+<li>Thread.interrupted() 判断线程是否被打断。它会清楚线程的打断状态</li>
+<li>interrupt 打断线程</li>
+<li>isInterrupted 返回线程的打断状态</li>
+</ul>
+<p>看看如下代码输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">@Slf4j</span><br><span class="line">public class Interrupted &#123;</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        System.out.println(Thread.currentThread().isInterrupted());</span><br><span class="line">        Thread.currentThread().interrupt();</span><br><span class="line">        log.debug(&quot;Thread.interrupted result--: &quot;+Thread.interrupted());</span><br><span class="line">        System.out.println(Thread.currentThread().isInterrupted());</span><br><span class="line">        System.out.println(Thread.currentThread().isInterrupted());</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">false</span><br><span class="line">18:42:45.026 [main] DEBUG com.demo.Interrupted - Thread.interrupted result--: true</span><br><span class="line">false</span><br></pre></td></tr></table></figure>
+
+<p>通过interrupt打断后，在通过log.debug中调用interrupted后，线程打断状态输出的是false</p>
+<p>总结： 如果想打断线程，最好使用ReentrantLock的lockInterruptibly方法。在等锁状态下ReentrantLock与synchronized 都不可被打断。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -209,7 +328,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2022-10-18 11:07:32" itemprop="dateModified" datetime="2022-10-18T11:07:32+08:00">2022-10-18</time>
+      <time title="Modified: 2022-10-18 16:19:26" itemprop="dateModified" datetime="2022-10-18T16:19:26+08:00">2022-10-18</time>
     </span>
 
   
