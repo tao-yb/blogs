@@ -28,7 +28,7 @@
 <meta property="og:description" content="volatile 是Java语音提供的一种非常非常轻量级的同步机制。在JDK的源码中，被大量使用。本文将大致介绍volatile底层实现机制。通常用在一个线程写入，而其他线程读取的场景。 理论CPU设计了L1、L2等缓存用来屏蔽CPU运算速度与内存读写上的差异。是同时，CPU为了提升运行速度，对一些指令做了重排序。比如有如下代码： 123int a &#x3D; 0;int b &#x3D; 0;a &#x3D; 10;  C">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2022-10-29T03:23:06.000Z">
-<meta property="article:modified_time" content="2022-10-29T06:47:34.110Z">
+<meta property="article:modified_time" content="2022-10-29T06:52:21.963Z">
 <meta property="article:author" content="tao">
 <meta property="article:tag" content="Java 多线程">
 <meta name="twitter:card" content="summary">
@@ -210,7 +210,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2022-10-29 11:23:06 / Modified: 14:47:34" itemprop="dateCreated datePublished" datetime="2022-10-29T11:23:06+08:00">2022-10-29</time>
+      <time title="Created: 2022-10-29 11:23:06 / Modified: 14:52:21" itemprop="dateCreated datePublished" datetime="2022-10-29T11:23:06+08:00">2022-10-29</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -262,7 +262,7 @@
 
 <p>用JIT工具查看如图：</p>
 <div>
-![alt 汇编指令](/volatile关键字浅析/volatile.png)
+![alt 汇编指令](./volatile关键字浅析/volatile.png)
 </div>
 
 <p>JVM实现 与storeload</p>
