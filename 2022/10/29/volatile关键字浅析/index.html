@@ -27,11 +27,13 @@
 <meta property="og:site_name" content="javaer">
 <meta property="og:description" content="volatile 是Java语音提供的一种非常非常轻量级的同步机制。在JDK的源码中，被大量使用。本文将大致介绍volatile底层实现机制。通常用在一个线程写入，而其他线程读取的场景。 理论CPU设计了L1、L2等缓存用来屏蔽CPU运算速度与内存读写上的差异。是同时，CPU为了提升运行速度，对一些指令做了重排序。比如有如下代码： 123int a &#x3D; 0;int b &#x3D; 0;a &#x3D; 10;  C">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tao-yb.github.io/blogs/.io//volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/volatile.png">
 <meta property="article:published_time" content="2022-10-29T03:23:06.000Z">
-<meta property="article:modified_time" content="2022-10-29T06:52:21.963Z">
+<meta property="article:modified_time" content="2022-10-29T06:58:12.277Z">
 <meta property="article:author" content="tao">
 <meta property="article:tag" content="Java 多线程">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tao-yb.github.io/blogs/.io//volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/volatile.png">
 
 
 <link rel="canonical" href="https://tao-yb.github.io/blogs/2022/10/29/volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/">
@@ -117,7 +119,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%90%86%E8%AE%BA"><span class="nav-number">1.</span> <span class="nav-text">理论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E8%AF%B4%E6%98%8E"><span class="nav-number">2.</span> <span class="nav-text">示例说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM%E7%BA%A7%E5%88%AB%E7%9A%84%E6%8C%87%E4%BB%A4"><span class="nav-number">3.</span> <span class="nav-text">JVM级别的指令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B1%87%E7%BC%96%E6%8C%87%E4%BB%A4"><span class="nav-number">4.</span> <span class="nav-text">汇编指令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#putstatic"><span class="nav-number">5.</span> <span class="nav-text">putstatic</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Operation"><span class="nav-number">5.1.</span> <span class="nav-text">Operation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA%EF%BC%9A"><span class="nav-number">6.</span> <span class="nav-text">结论：</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%90%86%E8%AE%BA"><span class="nav-number">1.</span> <span class="nav-text">理论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E8%AF%B4%E6%98%8E"><span class="nav-number">2.</span> <span class="nav-text">示例说明</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JVM%E7%BA%A7%E5%88%AB%E7%9A%84%E6%8C%87%E4%BB%A4"><span class="nav-number">3.</span> <span class="nav-text">JVM级别的指令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B1%87%E7%BC%96%E6%8C%87%E4%BB%A4"><span class="nav-number">4.</span> <span class="nav-text">汇编指令</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#JVM%E5%AE%9E%E7%8E%B0-%E4%B8%8Estoreload"><span class="nav-number"></span> <span class="nav-text">JVM实现 与storeload</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#putstatic"><span class="nav-number">1.</span> <span class="nav-text">putstatic</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Operation"><span class="nav-number">1.1.</span> <span class="nav-text">Operation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA%EF%BC%9A"><span class="nav-number">2.</span> <span class="nav-text">结论：</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -210,7 +212,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2022-10-29 11:23:06 / Modified: 14:52:21" itemprop="dateCreated datePublished" datetime="2022-10-29T11:23:06+08:00">2022-10-29</time>
+      <time title="Created: 2022-10-29 11:23:06 / Modified: 14:58:12" itemprop="dateCreated datePublished" datetime="2022-10-29T11:23:06+08:00">2022-10-29</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -262,11 +264,11 @@
 
 <p>用JIT工具查看如图：</p>
 <div>
-![alt 汇编指令](./volatile关键字浅析/volatile.png)
+![alt 汇编指令](/images/volatile.png)
 </div>
 
-<p>JVM实现 与storeload</p>
-<p>在查看Java的汇编指令之前，有一点需要指出的是：在Java中，对static变量的操作是通过pustatic来完成的。</p>
+<p><img src="/blogs/.io//volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/volatile.png"></p>
+<h1 id="JVM实现-与storeload"><a href="#JVM实现-与storeload" class="headerlink" title="JVM实现 与storeload"></a>JVM实现 与storeload</h1><p>在查看Java的汇编指令之前，有一点需要指出的是：在Java中，对static变量的操作是通过pustatic来完成的。</p>
 <h2 id="putstatic"><a href="#putstatic" class="headerlink" title="putstatic"></a>putstatic</h2><h3 id="Operation"><a href="#Operation" class="headerlink" title="Operation"></a>Operation</h3><p>Set static field in class</p>
 <p>感兴趣的同学可以参见官方文档：<a href="https://link.zhihu.com/?target=https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html%23jvms-6.5.putstatic">https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.putstatic</a></p>
 <p>在JVM 的字节码解析器bytecodeInterpreter.cpp文件中，我们看到对putstatic的处理：</p>
