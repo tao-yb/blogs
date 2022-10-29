@@ -137,9 +137,9 @@ public class com.syn.VolatileTest {
 
 用JIT工具查看如图：
 
-![alt 属性文本](C:\Users\tyb\tao-yb.github.io\source\_posts\volatile关键字浅析\volatile.png)
+![](/images/volatile.png)
 
-JVM实现 与storeload
+# JVM实现 与storeload
 
 在查看Java的汇编指令之前，有一点需要指出的是：在Java中，对static变量的操作是通过pustatic来完成的。
 
