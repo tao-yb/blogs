@@ -124,7 +124,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/blogs/archives/">
-          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -164,6 +164,140 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/10/29/volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/blogs/2022/10/29/volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%B5%85%E6%9E%90/" class="post-title-link" itemprop="url">volatile关键字浅析</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-10-29 11:23:06 / Modified: 11:35:49" itemprop="dateCreated datePublished" datetime="2022-10-29T11:23:06+08:00">2022-10-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">Java多线程</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>volatile 是Java语音提供的一种非常非常轻量级的同步机制。在JDK的源码中，被大量使用。本文将大致介绍volatile底层实现机制。通常用在一个线程写入，而其他线程读取的场景。</p>
+<h2 id="理论"><a href="#理论" class="headerlink" title="理论"></a>理论</h2><p>CPU设计了L1、L2等缓存用来屏蔽CPU运算速度与内存读写上的差异。是同时，CPU为了提升运行速度，对一些指令做了重排序。比如有如下代码：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">int a = 0;</span><br><span class="line">int b = 0;</span><br><span class="line">a = 10;</span><br></pre></td></tr></table></figure>
+
+<p>CPU 在运算上述代码比如a&#x3D;0时，需要先load a,然后将0赋值给a后，再将a写回去（写到缓存或者内存上）。如果CPU将a&#x3D;10放到b&#x3D;0之前，那么可以省掉再次load等操作。</p>
+<p>Java语言中，为了充分利用CPU的高性能，又能屏蔽各种CPU以及JVM 之间的差异，从而定义了JMM的规范。</p>
+<p>在JMM规范中，volatile 通过内存屏障的方式实现了轻量级的同步机制。具体来说，就是storeload屏障。</p>
+<h2 id="示例说明"><a href="#示例说明" class="headerlink" title="示例说明"></a>示例说明</h2><h2 id="JVM级别的指令"><a href="#JVM级别的指令" class="headerlink" title="JVM级别的指令"></a>JVM级别的指令</h2><p>首先，来看一段简单的代码：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">package com.syn;</span><br><span class="line"></span><br><span class="line">/**</span><br><span class="line"> * @author tyb</span><br><span class="line"> * @Description</span><br><span class="line"> * @create 2022-10-26 10:52</span><br><span class="line"> */</span><br><span class="line">public class VolatileTest &#123;</span><br><span class="line">    static int a = 0;</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        a = 10;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可能有人会说，通过javap -c查看JVM指令是不是就可以看出端倪了呢？</p>
+<p>没有volatile关键字的场景下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ javap -c VolatileTest.class</span><br><span class="line">Compiled from &quot;VolatileTest.java&quot;</span><br><span class="line">public class com.syn.VolatileTest &#123;</span><br><span class="line">  static int a;</span><br><span class="line"></span><br><span class="line">  public com.syn.VolatileTest();</span><br><span class="line">    Code:</span><br><span class="line">       0: aload_0</span><br><span class="line">       1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span><br><span class="line">       4: return</span><br><span class="line"></span><br><span class="line">  public static void main(java.lang.String[]);</span><br><span class="line">    Code:</span><br><span class="line">       0: bipush        10</span><br><span class="line">       2: putstatic     #2                  // Field a:I</span><br><span class="line">       5: return</span><br><span class="line"></span><br><span class="line">  static &#123;&#125;;</span><br><span class="line">    Code:</span><br><span class="line">       0: iconst_0</span><br><span class="line">       1: putstatic     #2                  // Field a:I</span><br><span class="line">       4: return</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有volatile关键字的场景下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ javap -c VolatileTest.class</span><br><span class="line">Compiled from &quot;VolatileTest.java&quot;</span><br><span class="line">public class com.syn.VolatileTest &#123;</span><br><span class="line">  static volatile int a;</span><br><span class="line"></span><br><span class="line">  public com.syn.VolatileTest();</span><br><span class="line">    Code:</span><br><span class="line">       0: aload_0</span><br><span class="line">       1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</span><br><span class="line">       4: return</span><br><span class="line"></span><br><span class="line">  public static void main(java.lang.String[]);</span><br><span class="line">    Code:</span><br><span class="line">       0: bipush        10</span><br><span class="line">       2: putstatic     #2                  // Field a:I</span><br><span class="line">       5: return</span><br><span class="line"></span><br><span class="line">  static &#123;&#125;;</span><br><span class="line">    Code:</span><br><span class="line">       0: iconst_0</span><br><span class="line">       1: putstatic     #2                  // Field a:I</span><br><span class="line">       4: return</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面2次的JVM级别的指令中，完全是一直的。</p>
+<p>实际上，我们需要通过hsdis查看生产的汇编代码。</p>
+<h2 id="汇编指令"><a href="#汇编指令" class="headerlink" title="汇编指令"></a>汇编指令</h2><p>要查看Java的汇编指令，我们需要通过工具hsdis.dll(windows 环境)。 可以下载一个hsdis-amd64.dll放置JAVA_HOME下的\jre\bin\server目录中。 在jvm 参数中指定如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-server</span><br><span class="line">-Xcomp</span><br><span class="line">-XX:+UnlockDiagnosticVMOptions</span><br><span class="line">-XX:+PrintAssembly</span><br><span class="line">-XX:CompileCommand=compileonly,*VolatileTest.main</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>参数说明：参数 -Xcomp 是让虚拟机以编译模式执行代码，这样代码可以偷懒，不需要执行足够次数来预热都能触发 JIT 编译。两个 -XX:CompileCommand 意思是让编译器仅仅编译，-XX:+PrintAssembly 就是输出反汇编内容</p>
+</blockquote>
+<p>在输出中，我们可找到lock addl相关的输出（截取部分）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">0x000000000384c1a8: sub    $0x30,%rsp         ;*bipush</span><br><span class="line">                                                ; - com.syn.VolatileTest::main@0 (line 12)</span><br><span class="line"></span><br><span class="line">  0x000000000384c1ac: movabs $0x7162a06e8,%rsi  ;   &#123;oop(a &#x27;java/lang/Class&#x27; = &#x27;com/syn/VolatileTest&#x27;)&#125;</span><br><span class="line">  0x000000000384c1b6: mov    $0xa,%edi</span><br><span class="line">  0x000000000384c1bb: mov    %edi,0x68(%rsi)</span><br><span class="line">  0x000000000384c1be: lock addl $0x0,(%rsp)     ;*putstatic a</span><br><span class="line">                                                ; - com.syn.VolatileTest::main@2 (line 12)可以用JIT工具查看，可视化效果更好</span><br></pre></td></tr></table></figure>
+
+<p>用JIT工具查看如图：</p>
+<p><img src="/blogs/.io//Users\tyb\tao-yb.github.io\source_posts\volatile关键字浅析\volatile.png" alt="alt 属性文本"></p>
+<p>JVM实现 与storeload</p>
+<p>在查看Java的汇编指令之前，有一点需要指出的是：在Java中，对static变量的操作是通过pustatic来完成的。</p>
+<h2 id="putstatic"><a href="#putstatic" class="headerlink" title="putstatic"></a>putstatic</h2><h3 id="Operation"><a href="#Operation" class="headerlink" title="Operation"></a>Operation</h3><p>Set static field in class</p>
+<p>感兴趣的同学可以参见官方文档：<a href="https://link.zhihu.com/?target=https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html%23jvms-6.5.putstatic">https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.putstatic</a></p>
+<p>在JVM 的字节码解析器bytecodeInterpreter.cpp文件中，我们看到对putstatic的处理：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">CASE(_putstatic):</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">.....</span><br><span class="line">if (cache-&gt;is_volatile()) &#123;</span><br><span class="line">            if (tos_type == itos) &#123;</span><br><span class="line">              obj-&gt;release_int_field_put(field_offset, STACK_INT(-1));</span><br><span class="line">            &#125; else if (tos_type == atos) &#123;</span><br><span class="line">              VERIFY_OOP(STACK_OBJECT(-1));</span><br><span class="line">              obj-&gt;release_obj_field_put(field_offset, STACK_OBJECT(-1));</span><br><span class="line">            &#125; else if (tos_type == btos) &#123;</span><br><span class="line">              obj-&gt;release_byte_field_put(field_offset, STACK_INT(-1));</span><br><span class="line">            &#125; else if (tos_type == ztos) &#123;</span><br><span class="line">              int bool_field = STACK_INT(-1);  // only store LSB</span><br><span class="line">              obj-&gt;release_byte_field_put(field_offset, (bool_field &amp; 1));</span><br><span class="line">            &#125; else if (tos_type == ltos) &#123;</span><br><span class="line">              obj-&gt;release_long_field_put(field_offset, STACK_LONG(-1));</span><br><span class="line">            &#125; else if (tos_type == ctos) &#123;</span><br><span class="line">              obj-&gt;release_char_field_put(field_offset, STACK_INT(-1));</span><br><span class="line">            &#125; else if (tos_type == stos) &#123;</span><br><span class="line">              obj-&gt;release_short_field_put(field_offset, STACK_INT(-1));</span><br><span class="line">            &#125; else if (tos_type == ftos) &#123;</span><br><span class="line">              obj-&gt;release_float_field_put(field_offset, STACK_FLOAT(-1));</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">              obj-&gt;release_double_field_put(field_offset, STACK_DOUBLE(-1));</span><br><span class="line">            &#125;</span><br><span class="line">            OrderAccess::storeload();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过cache-&gt;is_volatile()可以看到如果变量被volatile修饰，那么最后会通过OrderAccess::storeload()来处理。</p>
+<p>OrderAccess有很多种不同平台上的实现。看下Linux上的实现：</p>
+<p>在Linux的orderAccess_linux_x86.hpp文件中：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">inline void OrderAccess::storeload()  &#123; fence();            &#125;</span><br><span class="line"></span><br><span class="line">inline void OrderAccess::fence() &#123;</span><br><span class="line">   // always use locked addl since mfence is sometimes expensive</span><br><span class="line">#ifdef AMD64</span><br><span class="line">  __asm__ volatile (&quot;lock; addl $0,0(%%rsp)&quot; : : : &quot;cc&quot;, &quot;memory&quot;);</span><br><span class="line">#else</span><br><span class="line">  __asm__ volatile (&quot;lock; addl $0,0(%%esp)&quot; : : : &quot;cc&quot;, &quot;memory&quot;);</span><br><span class="line">#endif</span><br><span class="line">  compiler_barrier();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在Windows下（orderAccess_windows_x86.hpp文件中）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">inline void OrderAccess::storeload()  &#123; fence(); &#125;</span><br><span class="line"></span><br><span class="line">inline void OrderAccess::acquire()    &#123; compiler_barrier(); &#125;</span><br><span class="line">inline void OrderAccess::release()    &#123; compiler_barrier(); &#125;</span><br><span class="line"></span><br><span class="line">inline void OrderAccess::fence() &#123;</span><br><span class="line">#ifdef AMD64</span><br><span class="line">  StubRoutines_fence();</span><br><span class="line">#else</span><br><span class="line">  __asm &#123;</span><br><span class="line">    lock add dword ptr [esp], 0;</span><br><span class="line">  &#125;</span><br><span class="line">#endif // AMD64</span><br><span class="line">  compiler_barrier();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上可以看到，通过汇编级别的指令，通过lock addl操作 锁住总线的方式实现内存屏障。</p>
+<blockquote>
+<p>在IA32 手册5.20 SYSTEM INSTRUCTIONS 部分，lock LOCK (prefix) Lock Bus. 下载地址：<a href="https://link.zhihu.com/?target=https://www.intel.cn/content/www/cn/zh/architecture-and-technology/64-ia-32-architectures-software-developer-vol-1-manual.html">https://www.intel.cn/content/www/cn/zh/architecture-and-technology/64-ia-32-architectures-software-developer-vol-1-manual.html</a></p>
+</blockquote>
+<h2 id="结论："><a href="#结论：" class="headerlink" title="结论："></a>结论：</h2><ul>
+<li>volatile实现通过锁总线的方式实现同步。但volatile只是一种轻量的同步机制。</li>
+<li>虽然volatile可以实现轻量级的同步机制，但是由于对volatitle修饰的变量的操作不是原子的，所以它不能保证原子性</li>
+</ul>
+<p>参考：</p>
+<p> <a target="_blank" rel="noopener" href="https://www.infoq.cn/article/zzm-java-hsdis-jvm">JVM执行篇：使用HSDIS插件分析JVM代码执行细节_Java_周志明_InfoQ精选文章</a></p>
+<p>JIT 工具 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/stevenczp/p/7975776.html">如何在windows平台下使用hsdis与jitwatch查看JIT后的汇编码 - stevenczp - 博客园</a> <a target="_blank" rel="noopener" href="https://github.com/AdoptOpenJDK/jitwatch">GitHub - AdoptOpenJDK&#x2F;jitwatch: Log analyser &#x2F; visualiser for Java HotSpot JIT compiler. Inspect inlining decisions, hot methods, bytecode, and assembly. View results in the JavaFX user interface.</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
