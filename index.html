@@ -124,7 +124,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/blogs/archives/">
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -164,6 +164,141 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/11/01/Java%E5%85%AC%E5%B9%B3%E9%94%81%E4%B8%8E%E9%9D%9E%E5%85%AC%E5%B9%B3%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/blogs/2022/11/01/Java%E5%85%AC%E5%B9%B3%E9%94%81%E4%B8%8E%E9%9D%9E%E5%85%AC%E5%B9%B3%E9%94%81/" class="post-title-link" itemprop="url">Java公平锁与非公平锁</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-11-01 21:04:22 / Modified: 21:05:54" itemprop="dateCreated datePublished" datetime="2022-11-01T21:04:22+08:00">2022-11-01</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>什么是公平锁与非公平锁?他们有什么区别? 我们平常使用的是公平锁还是非公平锁?</p>
+<p>带着问题，首先来看ReentrantLock与synchronized加锁2个例子：</p>
+<h1 id="ReentrantLock"><a href="#ReentrantLock" class="headerlink" title="ReentrantLock"></a><a href="#reentrantlock"></a>ReentrantLock</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">package com.demo;</span><br><span class="line"></span><br><span class="line">import com.google.common.collect.Lists;</span><br><span class="line">import lombok.SneakyThrows;</span><br><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line"></span><br><span class="line">import java.util.List;</span><br><span class="line">import java.util.concurrent.TimeUnit;</span><br><span class="line">import java.util.concurrent.locks.ReentrantLock;</span><br><span class="line"></span><br><span class="line">/** * @author javaer * @Description * @create 2022-09-27 12:17 */</span><br><span class="line">@Slf4j</span><br><span class="line">public class ReetLock &#123;</span><br><span class="line"></span><br><span class="line">    private static final int COUNT = 10;</span><br><span class="line"></span><br><span class="line">    private static List&lt;Thread&gt; threads = Lists.newArrayList();</span><br><span class="line"></span><br><span class="line">    static ReentrantLock lock = new ReentrantLock();</span><br><span class="line"></span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line"></span><br><span class="line">        for (int i = 0; i &lt; COUNT; i++) &#123;</span><br><span class="line">            int finalI = i;</span><br><span class="line">            Thread thread = new Thread(() -&gt; &#123;                lock.lock();                try &#123;                    log.debug(&quot;&#123;&#125; print --&gt;&#123;&#125;&quot;, Thread.currentThread().getName(), finalI);                &#125; finally &#123;                    lock.unlock();                &#125;            &#125;, &quot;t&quot; + i);            threads.add(thread);        &#125;        lock.lock();        try &#123;            log.debug(&quot;main get lock &quot;);            for (int i = 0; i &lt; COUNT; i++) &#123;                threads.get(i).start();                TimeUnit.MICROSECONDS.sleep(50);            &#125;        &#125; finally &#123;            lock.unlock();        &#125;    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">18:02:31.468 [main] DEBUG com.demo.ReetLock - main get lock </span><br><span class="line">18:02:31.485 [t0] DEBUG com.demo.ReetLock - t0 print --&gt;0</span><br><span class="line">18:02:31.488 [t1] DEBUG com.demo.ReetLock - t1 print --&gt;1</span><br><span class="line">18:02:31.488 [t2] DEBUG com.demo.ReetLock - t2 print --&gt;2</span><br><span class="line">18:02:31.488 [t3] DEBUG com.demo.ReetLock - t3 print --&gt;3</span><br><span class="line">18:02:31.488 [t4] DEBUG com.demo.ReetLock - t4 print --&gt;4</span><br><span class="line">18:02:31.488 [t5] DEBUG com.demo.ReetLock - t5 print --&gt;5</span><br><span class="line">18:02:31.489 [t6] DEBUG com.demo.ReetLock - t6 print --&gt;6</span><br><span class="line">18:02:31.489 [t7] DEBUG com.demo.ReetLock - t7 print --&gt;7</span><br><span class="line">18:02:31.489 [t8] DEBUG com.demo.ReetLock - t8 print --&gt;8</span><br><span class="line">18:02:31.489 [t9] DEBUG com.demo.ReetLock - t9 print --&gt;9</span><br></pre></td></tr></table></figure>
+
+<h1 id="synchronized"><a href="#synchronized" class="headerlink" title="synchronized"></a><a href="#synchronized"></a>synchronized</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">package com.demo;</span><br><span class="line"></span><br><span class="line">import com.google.common.collect.Lists;</span><br><span class="line">import lombok.SneakyThrows;</span><br><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line"></span><br><span class="line">import java.util.List;</span><br><span class="line">import java.util.concurrent.TimeUnit;</span><br><span class="line"></span><br><span class="line">/** * @author tyb * @Description * @create 2022-09-27 10:51 */</span><br><span class="line">@Slf4j</span><br><span class="line">public class Sync &#123;</span><br><span class="line"></span><br><span class="line">    private static final int COUNT =10;</span><br><span class="line"></span><br><span class="line">    private static List&lt;Thread&gt; threads = Lists.newArrayList();</span><br><span class="line"></span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        Object o = new Object();</span><br><span class="line">        for (int i = 0; i &lt; COUNT; i++) &#123;</span><br><span class="line">            int finalI = i;</span><br><span class="line">            Thread thread = new Thread(()-&gt;&#123;                synchronized (o)&#123;                    log.debug(&quot;&#123;&#125; print --&gt;&#123;&#125;&quot;,Thread.currentThread().getName(), finalI);                &#125;            &#125;,&quot;t&quot;+i);            threads.add(thread);        &#125;        synchronized (o)&#123;            log.debug(&quot;main get lock &quot;);            for (int i = 0; i &lt; COUNT; i++) &#123;                threads.get(i).start();                TimeUnit.MICROSECONDS.sleep(50);            &#125;        &#125;    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">18:09:52.283 [main] DEBUG com.demo.Sync - main get lock </span><br><span class="line">18:09:52.301 [t9] DEBUG com.demo.Sync - t9 print --&gt;9</span><br><span class="line">18:09:52.304 [t8] DEBUG com.demo.Sync - t8 print --&gt;8</span><br><span class="line">18:09:52.304 [t7] DEBUG com.demo.Sync - t7 print --&gt;7</span><br><span class="line">18:09:52.304 [t6] DEBUG com.demo.Sync - t6 print --&gt;6</span><br><span class="line">18:09:52.304 [t5] DEBUG com.demo.Sync - t5 print --&gt;5</span><br><span class="line">18:09:52.304 [t4] DEBUG com.demo.Sync - t4 print --&gt;4</span><br><span class="line">18:09:52.304 [t3] DEBUG com.demo.Sync - t3 print --&gt;3</span><br><span class="line">18:09:52.304 [t2] DEBUG com.demo.Sync - t2 print --&gt;2</span><br><span class="line">18:09:52.304 [t1] DEBUG com.demo.Sync - t1 print --&gt;1</span><br><span class="line">18:09:52.304 [t0] DEBUG com.demo.Sync - t0 print --&gt;0</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，同样的逻辑synchronized与ReentrantLock输出是不同的。</p>
+<p>那么ReentrantLock是公平锁还是非公平锁?如果ReentrantLock是公平锁是不是就是说synchronized是非公平锁呢?</p>
+<h1 id="ReentrantLock-与synchronize"><a href="#ReentrantLock-与synchronize" class="headerlink" title="ReentrantLock 与synchronize"></a><a href="#reentrantlock-%E4%B8%8Esynchronize"></a>ReentrantLock 与synchronize</h1><p>ReentrantLock锁通过构造函数就可以指定：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * Creates an instance of &#123;@code ReentrantLock&#125;.</span><br><span class="line"> * This is equivalent to using &#123;@code ReentrantLock(false)&#125;.</span><br><span class="line"> */</span><br><span class="line">public ReentrantLock() &#123;</span><br><span class="line">    sync = new NonfairSync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面代码以及注释可以看出，默认创建是非公平锁,只有指定参数false时（即：ReentrantLock(false)）才是公平锁。</p>
+<p>那么疑问来了，</p>
+<ul>
+<li>既然是非公平锁，那为什么输出还是顺序的呢？</li>
+<li>既然上面例子中输出顺序完全相反，是不是说synchronized是公平锁呢?</li>
+</ul>
+<p>其实不是这样的。看过之前synchronized介绍的文章，我们指定synchronized是通过系统pthread_mutex 实现了锁的互斥，本质上它是属于非公平锁。</p>
+<h1 id="公平锁与非公平锁的区别"><a href="#公平锁与非公平锁的区别" class="headerlink" title="公平锁与非公平锁的区别"></a><a href="#%E5%85%AC%E5%B9%B3%E9%94%81%E4%B8%8E%E9%9D%9E%E5%85%AC%E5%B9%B3%E9%94%81%E7%9A%84%E5%8C%BA%E5%88%AB"></a>公平锁与非公平锁的区别</h1><ul>
+<li>非公平锁加锁</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">    final void lock() &#123;</span><br><span class="line">        if (compareAndSetState(0, 1))</span><br><span class="line">            setExclusiveOwnerThread(Thread.currentThread());</span><br><span class="line">        else</span><br><span class="line">            acquire(1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public final void acquire(int arg) &#123;</span><br><span class="line">    if (!tryAcquire(arg) &amp;&amp;            acquireQueued(addWaiter(Node.EXCLUSIVE), arg))</span><br><span class="line">        selfInterrupt();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  protected final boolean tryAcquire(int acquires) &#123;</span><br><span class="line">        return nonfairTryAcquire(acquires);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        /**         * Performs non-fair tryLock.  tryAcquire is implemented in         * subclasses, but both need nonfair try for trylock method.         */</span><br><span class="line">    final boolean nonfairTryAcquire(int acquires) &#123;</span><br><span class="line">        final Thread current = Thread.currentThread();</span><br><span class="line">        int c = getState();</span><br><span class="line">        if (c == 0) &#123;</span><br><span class="line">            if (compareAndSetState(0, acquires)) &#123;</span><br><span class="line">                setExclusiveOwnerThread(current);</span><br><span class="line">                return true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        else if (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">            int nextc = c + acquires;</span><br><span class="line">            if (nextc &lt; 0) // overflow</span><br><span class="line">                throw new Error(&quot;Maximum lock count exceeded&quot;);</span><br><span class="line">            setState(nextc);</span><br><span class="line">            return true;</span><br><span class="line">        &#125;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>公平锁加锁</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">static final class FairSync extends Sync &#123;</span><br><span class="line">    private static final long serialVersionUID = -3000897897090466540L;</span><br><span class="line"></span><br><span class="line">    final void lock() &#123;</span><br><span class="line">        acquire(1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">            /**         * Fair version of tryAcquire.  Don&#x27;t grant access unless         * recursive call or no waiters or is first.         */</span><br><span class="line">    protected final boolean tryAcquire(int acquires) &#123;</span><br><span class="line">        final Thread current = Thread.currentThread();</span><br><span class="line">        int c = getState();</span><br><span class="line">        if (c == 0) &#123;</span><br><span class="line">            if (!hasQueuedPredecessors() &amp;&amp;</span><br><span class="line">                compareAndSetState(0, acquires)) &#123;</span><br><span class="line">                setExclusiveOwnerThread(current);</span><br><span class="line">                return true;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        else if (current == getExclusiveOwnerThread()) &#123;</span><br><span class="line">            int nextc = c + acquires;</span><br><span class="line">            if (nextc &lt; 0)</span><br><span class="line">                throw new Error(&quot;Maximum lock count exceeded&quot;);</span><br><span class="line">            setState(nextc);</span><br><span class="line">            return true;</span><br><span class="line">        &#125;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>非公平锁上来就通过cas（此时不管队列是否有线程在等待） 修改状态，修改成功，那么就将主机改为拥有锁的线程;而公平锁会先看看是不是没有人持有锁（state&#x3D;0）并且还会看看有没有排队的线程，没有排队的线程，那么才执行CAS上锁</li>
+<li>非公平锁第一次CAS失败后，在nonfairTryAcquire中会再次CAS尝试加锁；公平锁则没有这个过程。</li>
+</ul>
+<h1 id="AQS入队"><a href="#AQS入队" class="headerlink" title="AQS入队"></a><a href="#aqs%E5%85%A5%E9%98%9F"></a>AQS入队</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">final boolean acquireQueued(final Node node, int arg) &#123;</span><br><span class="line">    boolean failed = true;</span><br><span class="line">    try &#123;</span><br><span class="line">        boolean interrupted = false;</span><br><span class="line">        for (;;) &#123;</span><br><span class="line">            final Node p = node.predecessor();</span><br><span class="line">            if (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                setHead(node);                    p.next = null; // help GC</span><br><span class="line">                failed = false;</span><br><span class="line">                return interrupted;</span><br><span class="line">            &#125;</span><br><span class="line">            if (shouldParkAfterFailedAcquire(p, node) &amp;&amp;                    parkAndCheckInterrupt())</span><br><span class="line">                interrupted = true;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        if (failed)</span><br><span class="line">            cancelAcquire(node);        &#125;    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>线程抢不到锁时，会调用acquireQueued(addWaiter(Node.EXCLUSIVE), arg))。</p>
+<ol>
+<li>addWaiter(Node.EXCLUSIVE), arg)将线程包装成一个Node节点。</li>
+<li>再通过acquireQueued方法将Node节点加入到队列中。</li>
+</ol>
+<p>在acquireQueued时，如果前一个节点是head,那么会再一次尝试加锁。这是因为，如果前一个节点是head的话，那么在当前线程来加锁的过程中，head可能会完成加锁业务后释放锁，这样就不需要阻塞当前线程</p>
+<p>不管公平锁还是非公平锁，它们都被封装成Node,然后放入AQS的等待队列中。一旦加入队列，那么就排队等待被唤醒</p>
+<h2 id="Node的主要结构"><a href="#Node的主要结构" class="headerlink" title="Node的主要结构"></a><a href="#node%E7%9A%84%E4%B8%BB%E8%A6%81%E7%BB%93%E6%9E%84"></a>Node的主要结构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">static final class Node &#123;        //等待状态。-1时需要叫醒下一个等待节点</span><br><span class="line">        volatile int waitStatus;</span><br><span class="line"></span><br><span class="line">        //等待队列中的前一个节点</span><br><span class="line">        volatile Node prev;</span><br><span class="line"></span><br><span class="line">        //等待队列中的下一个节点</span><br><span class="line">        volatile Node next;</span><br><span class="line"></span><br><span class="line">        //等待队列中的线程</span><br><span class="line">        volatile Thread thread;</span><br><span class="line"></span><br><span class="line">        //指向condition中的等待的节点或者特定Shared node        </span><br><span class="line">        Node nextWaiter;</span><br></pre></td></tr></table></figure>
+
+<p>node节点的结构中，有个waitStatus状态值。它表示等待状态。它有几个值：</p>
+<ul>
+<li>1表示被取消；</li>
+<li>0 默认（Int的默认值）</li>
+<li>1 表示需要唤醒下一个节点</li>
+<li>-2 表示在Condition中等待。在ReentrantLock中，可以通过它来做条件等待，类似synchronized中的wait。</li>
+<li>-3 指示下一个 acquireShared 应该无条件传播</li>
+</ul>
+<p>上面介绍说通过acquireQueued(addWaiter(Node.EXCLUSIVE), arg))加入队列。在加入队列是，新封装的Node节点的waitStatus值是int类型的默认值0。但是按照JUC中的说明，waitStatus只有是-1的时候才是唤醒状态。那么谁负责唤醒它呢?或者说，如果有新的node节点加入到队列，它是怎样唤醒其他节点的呢？</p>
+<p>看看加入队列的 方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">final boolean acquireQueued(final Node node, int arg) &#123;</span><br><span class="line">    boolean failed = true;</span><br><span class="line">    try &#123;</span><br><span class="line">        boolean interrupted = false;</span><br><span class="line">        for (;;) &#123;</span><br><span class="line">            final Node p = node.predecessor();</span><br><span class="line">            if (p == head &amp;&amp; tryAcquire(arg)) &#123;</span><br><span class="line">                setHead(node);                    p.next = null; // help GC</span><br><span class="line">                failed = false;</span><br><span class="line">                return interrupted;</span><br><span class="line">            &#125;</span><br><span class="line">            if (shouldParkAfterFailedAcquire(p, node) &amp;&amp;                    parkAndCheckInterrupt())</span><br><span class="line">                interrupted = true;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        if (failed)</span><br><span class="line">            cancelAcquire(node);        &#125;    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在shouldParkAfterFailedAcquire中，会将waitStatus修改为-1.代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) &#123;</span><br><span class="line">       int ws = pred.waitStatus;</span><br><span class="line">       if (ws == Node.SIGNAL)</span><br><span class="line">           /*</span><br><span class="line">            * This node has already set status asking a release</span><br><span class="line">            * to signal it, so it can safely park.</span><br><span class="line">            */</span><br><span class="line">           return true;</span><br><span class="line">       if (ws &gt; 0) &#123;</span><br><span class="line">           /*</span><br><span class="line">            * Predecessor was cancelled. Skip over predecessors and</span><br><span class="line">            * indicate retry.</span><br><span class="line">            */</span><br><span class="line">           do &#123;</span><br><span class="line">               node.prev = pred = pred.prev;</span><br><span class="line">           &#125; while (pred.waitStatus &gt; 0);</span><br><span class="line">           pred.next = node;        &#125; else &#123;</span><br><span class="line">           /*</span><br><span class="line">            * waitStatus must be 0 or PROPAGATE.  Indicate that we</span><br><span class="line">            * need a signal, but don&#x27;t park yet.  Caller will need to</span><br><span class="line">            * retry to make sure it cannot acquire before parking.</span><br><span class="line">            */</span><br><span class="line">           compareAndSetWaitStatus(pred, ws, Node.SIGNAL);</span><br><span class="line">       &#125;</span><br><span class="line">       return false;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意，这个地方是将要排队的线程封装成Node入队后，将Node的前一个waitStatus改成-1,而当前节点的waitStatus仍然是0,也就是说它不需要唤醒其他节点。 这个是因为，在AQS队列中，是按照线程先后顺序排队的。排在最后的一个线程肯定不要唤醒其他线程</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a><a href="#%E6%80%BB%E7%BB%93"></a>总结</h1><p>相同点： 不管是公平锁还是非公平锁，它们的区别主要在加锁的时候。如果一旦进入到等待队列，就会在队列中等待被唤醒。 ReentrantLock 中的队列是FIFO，synchronized则是LIFO模式。</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
