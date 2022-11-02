@@ -124,7 +124,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/blogs/archives/">
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -164,6 +164,135 @@
 
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://tao-yb.github.io/blogs/2022/11/02/ReentrantLock%E6%9D%A1%E4%BB%B6%E7%AD%89%E5%BE%85%E4%B8%8E%E5%94%A4%E9%86%92%E7%9A%84%E6%B5%81%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blogs/images/avatar.gif">
+      <meta itemprop="name" content="tao">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="javaer">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | javaer">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/blogs/2022/11/02/ReentrantLock%E6%9D%A1%E4%BB%B6%E7%AD%89%E5%BE%85%E4%B8%8E%E5%94%A4%E9%86%92%E7%9A%84%E6%B5%81%E7%A8%8B/" class="post-title-link" itemprop="url">ReentrantLock条件等待与唤醒的流程</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2022-11-02 10:16:46 / Modified: 10:18:04" itemprop="dateCreated datePublished" datetime="2022-11-02T10:16:46+08:00">2022-11-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/blogs/categories/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">Java多线程</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>ReentrantLock 可以通过newCondition用做条件等待。条件不满足，则等待;被唤醒后则入对等待执行。</p>
+<h1 id="AQS中的Node"><a href="#AQS中的Node" class="headerlink" title="AQS中的Node"></a><a href="#aqs%E4%B8%AD%E7%9A%84node"></a>AQS中的Node</h1><p>在AQS中，获取不到锁时，线程会被封装成Node结构，然后入队；条件等待中，也会将等待线程封装为node。回顾下Node主要结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">static final class Node &#123;        //等待状态。-2表示处于等待需要被唤醒的节点</span><br><span class="line">        volatile int waitStatus;</span><br><span class="line"></span><br><span class="line">        //等待队列中的前一个节点</span><br><span class="line">        volatile Node prev;</span><br><span class="line"></span><br><span class="line">        //等待队列中的下一个节点</span><br><span class="line">        volatile Node next;</span><br><span class="line"></span><br><span class="line">        //等待队列中的线程</span><br><span class="line">        volatile Thread thread;</span><br><span class="line"></span><br><span class="line">        //指向condition中的等待的节点或者特定Shared node        </span><br><span class="line">        Node nextWaiter;</span><br></pre></td></tr></table></figure>
+
+<p>在ConditonObject中，就是使用的Node：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public class ConditionObject implements Condition, java.io.Serializable &#123;</span><br><span class="line">        private static final long serialVersionUID = 1173984872572414699L;</span><br><span class="line">        /** First node of condition queue. */</span><br><span class="line">        private transient Node firstWaiter;</span><br><span class="line">        /** Last node of condition queue. */</span><br><span class="line">        private transient Node lastWaiter;</span><br><span class="line"></span><br><span class="line">        /**         * Creates a new &#123;@code ConditionObject&#125; instance.         */</span><br><span class="line">        public ConditionObject() &#123; &#125;</span><br><span class="line"></span><br><span class="line">        .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@Slf4j</span><br><span class="line">public class SignalTest &#123;</span><br><span class="line"></span><br><span class="line">    @SneakyThrows</span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        ReentrantLock lock = new ReentrantLock();</span><br><span class="line">        final Condition condition = lock.newCondition();</span><br><span class="line"></span><br><span class="line">        final Thread t1 = new Thread(() -&gt; &#123;            lock.lock();            try &#123;                log.debug(&quot;t1 get lock&quot;);                condition.await();            &#125; catch (InterruptedException e) &#123;                e.printStackTrace();            &#125; finally &#123;                lock.unlock();            &#125;        &#125;, &quot;t1&quot;);        t1.start();        TimeUnit.SECONDS.sleep(10);        lock.lock();        try &#123;            log.debug(&quot;main signal!&quot;);            condition.signal();        &#125; catch (Exception e) &#123;            lock.unlock();        &#125;finally &#123;        &#125;        log.debug(&quot;main over~~~&quot;);    &#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">17:03:14.540 [t1] DEBUG com.demo.exercise.SignalTest - t1 get lock</span><br><span class="line">17:03:24.551 [main] DEBUG com.demo.exercise.SignalTest - main signal!</span><br><span class="line">17:03:24.551 [main] DEBUG com.demo.exercise.SignalTest - main over~~~</span><br></pre></td></tr></table></figure>
+
+<p>示例说明：由于主线程延迟10秒才会获取锁后，因此线程t1肯定会先执行。t1执行时，直接通过condition.await()释放锁并park自己。</p>
+<h1 id="await等待后释放锁"><a href="#await等待后释放锁" class="headerlink" title="await等待后释放锁"></a><a href="#await%E7%AD%89%E5%BE%85%E5%90%8E%E9%87%8A%E6%94%BE%E9%94%81"></a>await等待后释放锁</h1><p>同synchronized中使用一样，在调用同步对象的wait方法后会释放锁。ReentrantLock中的Condition调用await后也会释放自己占用的锁。</p>
+<h2 id="await流程"><a href="#await流程" class="headerlink" title="await流程"></a><a href="#await%E6%B5%81%E7%A8%8B"></a>await流程</h2><p>先看看它的源码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">public final void await() throws InterruptedException &#123;</span><br><span class="line">    if (Thread.interrupted())</span><br><span class="line">        throw new InterruptedException();</span><br><span class="line">    Node node = addConditionWaiter();</span><br><span class="line">    int savedState = fullyRelease(node);</span><br><span class="line">    int interruptMode = 0;</span><br><span class="line">    while (!isOnSyncQueue(node)) &#123;</span><br><span class="line">        LockSupport.park(this);</span><br><span class="line">        if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)</span><br><span class="line">            break;</span><br><span class="line">    &#125;</span><br><span class="line">    if (acquireQueued(node, savedState) &amp;&amp; interruptMode != THROW_IE)</span><br><span class="line">        interruptMode = REINTERRUPT;</span><br><span class="line">    if (node.nextWaiter != null) // clean up if cancelled</span><br><span class="line">        unlinkCancelledWaiters();</span><br><span class="line">    if (interruptMode != 0)</span><br><span class="line">        reportInterruptAfterWait(interruptMode);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>大致流程如下：</p>
+<ol>
+<li>如果线程被打断，那么直接抛出异常</li>
+<li>将当前线程封装为一个等待的Node对象</li>
+<li>通过fullyRelease释放锁</li>
+<li>如果当前await的线程是一个等待signal信号的或者它的上一个节点为null，那就park 自己</li>
+</ol>
+<h3 id="addConditionWaiter"><a href="#addConditionWaiter" class="headerlink" title="addConditionWaiter"></a><a href="#addconditionwaiter"></a>addConditionWaiter</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">private Node addConditionWaiter() &#123;</span><br><span class="line">       Node t = lastWaiter;</span><br><span class="line">       // If lastWaiter is cancelled, clean out.</span><br><span class="line">       if (t != null &amp;&amp; t.waitStatus != Node.CONDITION) &#123;</span><br><span class="line">           unlinkCancelledWaiters();</span><br><span class="line">           t = lastWaiter;</span><br><span class="line">       &#125;</span><br><span class="line">       Node node = new Node(Thread.currentThread(), Node.CONDITION);</span><br><span class="line">       if (t == null)</span><br><span class="line">           firstWaiter = node;            else</span><br><span class="line">           t.nextWaiter = node;            lastWaiter = node;            return node;        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法其实就是将线程封装为一个Node(此时waitStaus&#x3D;-2)。</p>
+<h3 id="fullyRelease"><a href="#fullyRelease" class="headerlink" title="fullyRelease"></a><a href="#fullyrelease"></a>fullyRelease</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">final int fullyRelease(Node node) &#123;</span><br><span class="line">    boolean failed = true;</span><br><span class="line">    try &#123;</span><br><span class="line">        int savedState = getState();</span><br><span class="line">        if (release(savedState)) &#123;</span><br><span class="line">            failed = false;</span><br><span class="line">            return savedState;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            throw new IllegalMonitorStateException();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        if (failed)</span><br><span class="line">            node.waitStatus = Node.CANCELLED;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    public final boolean release(int arg) &#123;</span><br><span class="line">    if (tryRelease(arg)) &#123;</span><br><span class="line">        Node h = head;</span><br><span class="line">        if (h != null &amp;&amp; h.waitStatus != 0)</span><br><span class="line">            unparkSuccessor(h);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">protected final boolean tryRelease(int releases) &#123;</span><br><span class="line">        int c = getState() - releases;</span><br><span class="line">        if (Thread.currentThread() != getExclusiveOwnerThread())</span><br><span class="line">            throw new IllegalMonitorStateException();</span><br><span class="line">        boolean free = false;</span><br><span class="line">        if (c == 0) &#123;</span><br><span class="line">            free = true;</span><br><span class="line">            setExclusiveOwnerThread(null);</span><br><span class="line">        &#125;</span><br><span class="line">        setState(c);</span><br><span class="line">        return free;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>几个核心的方法就是上面几个：</p>
+<ol>
+<li>获取AQS 中state值</li>
+<li>然后通过release中调用tryRelease，设置state值以及将独占线程设置为Null。这个操作主要是让下一个线程可以来抢锁</li>
+</ol>
+<h2 id="signal-主要流程"><a href="#signal-主要流程" class="headerlink" title="signal 主要流程"></a><a href="#signal-%E4%B8%BB%E8%A6%81%E6%B5%81%E7%A8%8B"></a>signal 主要流程</h2><p>先看源码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public final void signal() &#123;</span><br><span class="line">         if (!isHeldExclusively())</span><br><span class="line">             throw new IllegalMonitorStateException();</span><br><span class="line">         Node first = firstWaiter;</span><br><span class="line">         if (first != null)</span><br><span class="line">             doSignal(first);</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">   /**</span><br><span class="line">      * Removes and transfers nodes until hit non-cancelled one or</span><br><span class="line">      * null. Split out from signal in part to encourage compilers</span><br><span class="line">      * to inline the case of no waiters.</span><br><span class="line">      * @param first (non-null) the first node on condition queue</span><br><span class="line">      */</span><br><span class="line">     private void doSignal(Node first) &#123;</span><br><span class="line">         do &#123;</span><br><span class="line">             if ( (firstWaiter = first.nextWaiter) == null)</span><br><span class="line">                 lastWaiter = null;</span><br><span class="line">             first.nextWaiter = null;</span><br><span class="line">         &#125; while (!transferForSignal(first) &amp;&amp;</span><br><span class="line">                  (first = firstWaiter) != null);</span><br><span class="line">     &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">         /**</span><br><span class="line">  * Transfers a node from a condition queue onto sync queue.</span><br><span class="line">  * Returns true if successful.</span><br><span class="line">  * @param node the node</span><br><span class="line">  * @return true if successfully transferred (else the node was</span><br><span class="line">  * cancelled before signal)</span><br><span class="line">  */</span><br><span class="line"> final boolean transferForSignal(Node node) &#123;</span><br><span class="line">     /*</span><br><span class="line">      * If cannot change waitStatus, the node has been cancelled.</span><br><span class="line">      */</span><br><span class="line">     if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))</span><br><span class="line">         return false;</span><br><span class="line"></span><br><span class="line">     /*</span><br><span class="line">      * Splice onto queue and try to set waitStatus of predecessor to</span><br><span class="line">      * indicate that thread is (probably) waiting. If cancelled or</span><br><span class="line">      * attempt to set waitStatus fails, wake up to resync (in which</span><br><span class="line">      * case the waitStatus can be transiently and harmlessly wrong).</span><br><span class="line">      */</span><br><span class="line">     Node p = enq(node);        int ws = p.waitStatus;</span><br><span class="line">     if (ws &gt; 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))</span><br><span class="line">         LockSupport.unpark(node.thread);</span><br><span class="line">     return true;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用signal后：</p>
+<ol>
+<li>如果不是我占用了锁，此时释放直接抛异常</li>
+<li>找condition队列的第一个等待线程，如果存在就将他唤醒</li>
+</ol>
+<p>在doSignal 方法中先对condition中的等待队列进行处理：将需要移入到AQS对列中的下一个节点置为Null。注意Node中只定义了nextWaiter，它是单向链表而非AQS中的双向</p>
+<p>transferForSignal 方法流程：</p>
+<ol>
+<li>将等待节点的waitStatus先改为0。因为从condition队列中加入到AQS队列时，是放在AQS队列中的最后一个。而最后一个不需要唤醒其他人，所以状态是0</li>
+<li>再调用enq方法，将node加入到AQS的队列</li>
+<li>通过compareAndSetWaitStatus让从condition中入队到AQS中的节点被它的上一个节点叫醒。上面enq(node)返回的就是node 的上一个节点。</li>
+</ol>
+<p>最后， main 的lock.unlock 后，会唤醒AQS中的等待节点</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
